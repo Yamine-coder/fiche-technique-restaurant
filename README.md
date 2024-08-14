@@ -1,4 +1,4 @@
-# 🍕 Fiche Technique - Restaurant
+# 🍕 Fiche Technique - Chez Antoine
 
 ![Streamlit](https://img.shields.io/badge/Made%20with-Streamlit-ff4b4b?style=flat&logo=streamlit)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -30,6 +30,11 @@
 
 ---
 
+## 🖥️ Aperçu visuel
+
+![Aperçu visuel du dashboard](./images/fiche-technique-preview.png)
+
+---
 
 ## 🧰 Stack technique
 
@@ -98,7 +103,7 @@ Projet sous licence MIT – libre d’utilisation et de modification pour un usa
 **Yamine Moussaoui**  
 🎓 MSc Intelligence Artificielle & Big Data  
 💼 Consultant en Solutions Data & IA  
-🔗 [LinkedIn](https://www.linkedin.com/in/yamine-moussaoui-672a25205/)  
+🔗 [LinkedIn](https://www.linkedin.com/in/yamine-moussaoui/)  
 📧 moussaouiyamine1@gmail.com  
 🔎 [GitHub](https://github.com/Yamine-coder)
 

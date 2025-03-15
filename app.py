@@ -113,7 +113,7 @@ fig = px.pie(ingr_plat, values="Coût (€)", names="ingredient",
 st.plotly_chart(fig, use_container_width=True)
 
 # --- Graphique en Barres (Supplémentaire) ---
-st.subheader("📊 Coût par ingrédient")
-fig_bar = px.bar(ingr_plat, x="ingredient", y="Coût (€)",
-                 title="Coût par ingrédient", labels={"ingredient": "Ingrédient", "Coût (€)": "Coût en €"})
-st.plotly_chart(fig_bar, use_container_width=True)
+# st.subheader("📊 Coût par ingrédient")
+# fig_bar = px.bar(ingr_plat, x="ingredient", y="Coût (€)",
+#                  title="Coût par ingrédient", labels={"ingredient": "Ingrédient", "Coût (€)": "Coût en €"})
+# st.plotly_chart(fig_bar, use_container_width=True)

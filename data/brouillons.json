@@ -1,0 +1,54 @@
+[
+  {
+    "nom": "Calzone S Tunisienne",
+    "base": "Calzone S",
+    "composition": [
+      {
+        "plat": "Calzone S",
+        "ingredient": "sauce tomate",
+        "quantite_g": 55.0,
+        "unite": "g",
+        "prix_kg": 2.63,
+        "original_plat": "Calzone S",
+        "Coût (€)": 0.14465
+      },
+      {
+        "plat": "Calzone S",
+        "ingredient": "Mozzarella",
+        "quantite_g": 55.0,
+        "unite": "g",
+        "prix_kg": 5.85,
+        "original_plat": "Calzone S",
+        "Coût (€)": 0.32175
+      },
+      {
+        "plat": "Calzone S",
+        "ingredient": "Œuf",
+        "quantite_g": 50.0,
+        "unite": "g",
+        "prix_kg": 3.48,
+        "original_plat": "Calzone S",
+        "Coût (€)": 0.174
+      },
+      {
+        "plat": NaN,
+        "ingredient": "Thon",
+        "quantite_g": 40.0,
+        "unite": NaN,
+        "prix_kg": 5.35,
+        "original_plat": NaN,
+        "Coût (€)": 0.214
+      },
+      {
+        "plat": NaN,
+        "ingredient": "Pdt",
+        "quantite_g": 30.0,
+        "unite": NaN,
+        "prix_kg": 1.2,
+        "original_plat": NaN,
+        "Coût (€)": 0.036
+      }
+    ],
+    "prix_vente": 9.5
+  }
+]

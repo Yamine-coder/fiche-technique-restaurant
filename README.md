@@ -1,4 +1,4 @@
-# 🍕 Fiche Technique - Chez Antoine
+# 🍕 Fiche Technique - Restaurant
 
 ![Streamlit](https://img.shields.io/badge/Made%20with-Streamlit-ff4b4b?style=flat&logo=streamlit)
 ![License](https://img.shields.io/badge/License-MIT-green)

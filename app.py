@@ -10,23 +10,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.markdown("""
-<style>
-.block-container {
-    width: 100% !important;
-    max-width: 100vw !important;
-    padding-left: 2rem;
-    padding-right: 2rem;
-    transition: max-width 0.2s, width 0.2s;
-}
-@media (max-width: 900px) {
-    .block-container {
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
-    }
-}
-</style>
-""", unsafe_allow_html=True)
+st.write(
+    "<script>window.dispatchEvent(new Event('resize'));</script>",
+    unsafe_allow_html=True
+)
+
 
 
 # --------- TITRE ---------

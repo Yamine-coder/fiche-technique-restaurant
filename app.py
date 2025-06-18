@@ -146,7 +146,7 @@ prix_vente_dict = {
     "Arrabiata": 8.90,
     "Pain aux herbes et mozzarella": 3.00,
     "Pain aux herbes": 2.50,
-    "Assiette Artichauts": 6.50,
+    "Assiette Artichauts": 5.50,
     "Salade Verte": 5.50,
     "Arrabiata Poulet": 9.90,
   
@@ -240,7 +240,7 @@ def afficher_image_plat(plat: str, images_dict: dict):
         image_path = "images/default.jpg"
     st.image(image_path, use_container_width=True)
 
-def generer_detailed_breakdown(plat, composition_finale, cout_matiere, prix_vente):
+def generer_detailed_breakdown(plat, composition_finale, cout_matiere, prix_affiche):
     """
     Génère une chaîne de texte expliquant le calcul.
     """
@@ -255,34 +255,57 @@ def generer_detailed_breakdown(plat, composition_finale, cout_matiere, prix_vent
 # ============== STYLES CSS ==============
 st.markdown("""
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-  html, body, [class*="css"] {
-    font-family: 'Roboto', sans-serif;
-  }
   .title-card {
     color: #D92332;
     padding-bottom: 15px;
   }
+
   .metric-card {
     background-color: #FFF;
     border-radius: 10px;
-    padding: 15px;
+    padding: 15px 20px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     text-align: center;
-    margin-bottom: 15px;
+    margin: 0 10px 20px 10px;
+    min-height: 120px;
   }
+
   .metric-value {
     font-size: 24px;
     font-weight: 700;
     color: #D92332;
+    margin-bottom: 8px;
   }
+
   .metric-title {
     font-size: 14px;
     font-weight: 500;
     color: #555;
   }
+
+  .element-container {
+    margin-bottom: 20px !important;
+  }
+
+  .block-container {
+    padding: 2rem 1rem 3rem 1rem;
+  }
+
+  .stPlotlyChart {
+    margin-top: 20px;
+  }
+
+  .stImage {
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
+  .css-ocqkz7 {
+    padding-bottom: 25px;
+  }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ============== TITRE PRINCIPAL ==============
 st.markdown("<h1 class='title-card'>🍽️ Fiche Technique - Chez Antoine</h1>", unsafe_allow_html=True)
@@ -362,9 +385,9 @@ if mode_analysis == "Analyse d'un plat":
     ingr_plat = calculer_cout(ingr_plat)
 
     # 5. Ajustement du prix de vente pour les pâtes en Grosse Faim
-    prix_vente = prix_vente_dict.get(plat, None)
+    prix_affiche = prix_vente_dict.get(plat, 0)
     if categorie_choisie.lower() == "pâtes" and portion_faim == "Grosse Faim":
-        prix_vente += 3  # Ajoute 3€ pour Grosse Faim
+        prix_affiche += 3  # Ajoute 3€ pour la Grosse Faim
     # Choix de l'affichage TTC ou HT
     affichage_prix = st.radio("Affichage des prix :", ["TTC", "HT"], horizontal=True)
     
@@ -373,10 +396,10 @@ if mode_analysis == "Analyse d'un plat":
     taux_tva = 0.10
 
     # Calcul dynamique selon affichage
-    if affichage_prix == "HT" and prix_vente:
-        prix_affiche = prix_vente / (1 + taux_tva)
+    if affichage_prix == "HT" and prix_affiche:
+        prix_affiche = prix_affiche / (1 + taux_tva)
     else:
-        prix_affiche = prix_vente
+        prix_affiche = prix_affiche
 
     
 
@@ -514,10 +537,10 @@ if mode_analysis == "Analyse d'un plat":
  # 5. Calculs
     cout_genereux = cout_matiere * coeff_surplus
     marge_generuse = prix_affiche - cout_genereux
-    taux_generuse = (marge_generuse / prix_vente * 100) if prix_affiche and prix_affiche > 0 else None
+    taux_generuse = (marge_generuse / prix_affiche * 100) if prix_affiche and prix_affiche > 0 else None
 
-    marge_brute = prix_affiche - cout_matiere if prix_vente is not None else None
-    taux_marge = (marge_brute / prix_affiche * 100) if marge_brute is not None and prix_vente and prix_vente > 0 else None
+    marge_brute = prix_affiche - cout_matiere if prix_affiche is not None else None
+    taux_marge = (marge_brute / prix_affiche * 100) if marge_brute is not None and prix_affiche and prix_affiche > 0 else None
 
     # 6. Regroupement final
     my_agg = {
@@ -837,7 +860,7 @@ elif mode_analysis == "Modifier un plat":
             for i, plat in enumerate(st.session_state.brouillons):
                 col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
                 col1.markdown(f"**{plat['nom']}** (base : _{plat['base']}_)")
-                col2.markdown(f"💰 Vente : **{plat.get('prix_vente', 0):.2f} €**")
+                col2.markdown(f"💰 Vente : **{plat.get('prix_affiche', 0):.2f} €**")
                 if col3.button("✏️ Modifier", key=f"edit_{i}"):
                     st.session_state.plat_actif = plat
                     st.session_state.vue_actuelle = "Édition"
@@ -871,7 +894,7 @@ elif mode_analysis == "Modifier un plat":
                     "nom": nom_personnalise,
                     "base": plat_selectionne,
                     "composition": ingr_base.to_dict(orient="records"),
-                    "prix_vente": prix_nouveau
+                    "prix_affiche": prix_nouveau
                 }
                 st.rerun()
             st.stop()
@@ -882,7 +905,7 @@ elif mode_analysis == "Modifier un plat":
         ingr_dispo = ingredients["ingredient"].unique()
 
         nouveau_nom = st.text_input("✏️ Nom du plat", value=plat_data["nom"], key="edit_nom")
-        prix_vente = st.number_input("💰 Prix de vente (€)", min_value=1.0, value=plat_data.get("prix_vente", 10.0), step=0.5, key="edit_prix")
+        prix_affiche = st.number_input("💰 Prix de vente (€)", min_value=1.0, value=plat_data.get("prix_affiche", 10.0), step=0.5, key="edit_prix")
 
         st.markdown("### 🔁 Modifier des ingrédients")
 
@@ -967,7 +990,7 @@ elif mode_analysis == "Modifier un plat":
                     "nom": nouveau_nom,
                     "base": plat_data["base"],
                     "composition": ingr_modifie.to_dict(orient="records"),
-                    "prix_vente": prix_vente,
+                    "prix_affiche": prix_affiche,
                 }
                 # Remplace le plat si même nom, sinon ajoute
                 brouillons = [b for b in st.session_state.brouillons if b["nom"] != nouveau_nom]

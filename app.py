@@ -10,10 +10,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.write(
-    "<script>window.dispatchEvent(new Event('resize'));</script>",
-    unsafe_allow_html=True
-)
 
 
 
@@ -503,65 +499,12 @@ if mode_analysis == "Analyse d'un plat":
 
     # 🔥 Affichage des KPI fusionnés
     cols = st.columns(5)
+    cols[0].metric("Prix Vente", f"{prix_affiche:.2f}€" if prix_affiche else "N/A")
+    cols[1].metric("Coût Matière", f"{cout_matiere:.2f}€")
+    cols[2].metric("Coût Généreux", f"{cout_genereux:.2f}€")
+    cols[3].metric("Marge Brute", f"{marge_brute:.2f}€" if marge_brute is not None else "N/A")
+    cols[4].metric("Taux de Marge", f"{taux_marge:.1f}%" if taux_marge is not None else "N/A")
 
-    # Bloc 0 : Prix Vente
-    with cols[0]:
-        val = f"{prix_affiche:.2f}€" if prix_affiche else "N/A"
-        st.markdown(
-            f"<div class='metric-card'>"
-            f"<div class='metric-value'>{val}</div>"
-            f"<div class='metric-title'>Prix Vente</div>"
-            f"</div>", unsafe_allow_html=True
-        )
-
-    # Bloc 1 : Coût Matière
-    with cols[1]:
-        val = f"{cout_matiere:.2f}€"
-        st.markdown(
-            f"<div class='metric-card'>"
-            f"<div class='metric-value'>{val}</div>"
-            f"<div class='metric-title'>Coût Matière</div>"
-            f"</div>", unsafe_allow_html=True
-        )
-
-    # Bloc 2 : Coût Généreux + Marge Généreuse + Taux dans la même carte
-    with cols[2]:
-        val_gen = f"{cout_genereux:.2f}€"
-        val_marge = f"{marge_generuse:.2f}€"
-        val_taux = f"{taux_generuse:.1f}%" if taux_generuse is not None else "N/A"
-        percent_text = f"(+{(coeff_surplus - 1)*100:.0f}%)"
-        
-        st.markdown(
-            f"<div class='metric-card'>"
-            f"<div class='metric-value'>{val_gen}</div>"
-            f"<div style='font-size:13px; color: #999;'>{percent_text}</div>"
-            f"<div class='metric-title'>Coût Généreux</div>"
-            f"<div style='font-size:13px; margin-top:8px;'>"
-            f"💸 Marge : <strong>{val_marge}</strong><br>"
-            f"📈 Taux : <strong>{val_taux}</strong>"
-            f"</div>"
-            f"</div>", unsafe_allow_html=True
-        )
-
-    # Bloc 3 : Marge Brute
-    with cols[3]:
-        val = f"{marge_brute:.2f}€" if marge_brute is not None else "N/A"
-        st.markdown(
-            f"<div class='metric-card'>"
-            f"<div class='metric-value'>{val}</div>"
-            f"<div class='metric-title'>Marge Brute</div>"
-            f"</div>", unsafe_allow_html=True
-        )
-
-    # Bloc 4 : Taux de Marge
-    with cols[4]:
-        val = f"{taux_marge:.1f}%" if taux_marge is not None else "N/A"
-        st.markdown(
-            f"<div class='metric-card'>"    
-            f"<div class='metric-value'>{val}</div>"
-            f"<div class='metric-title'>Taux de Marge</div>"
-            f"</div>", unsafe_allow_html=True
-        )
 
     # Affichage de l'image et des détails
     col1, col2 = st.columns([1, 2])

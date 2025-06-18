@@ -6,47 +6,28 @@ import json
 
 st.set_page_config(
     page_title="🍕 Fiche Technique - Chez Antoine",
-    layout="wide",  # 👈 IMPERATIF POUR RESPONSIVE
+    layout="wide",
     initial_sidebar_state="expanded"
 )
 
 st.markdown("""
 <style>
-/* Utilise Roboto partout */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-html, body, [class*="css"] { font-family: 'Roboto', sans-serif; }
-/* Fixe la largeur max du container principal et padding */
 .block-container {
-    max-width: 1700px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
     padding-left: 2rem;
     padding-right: 2rem;
-    transition: max-width 0.2s;
+    transition: max-width 0.2s, width 0.2s;
 }
-/* Titre principal */
-.title-card { color: #D92332; padding-bottom: 15px; }
-/* Cards de KPIs */
-.metric-card {
-    background: #FFF;
-    border-radius: 14px;
-    padding: 22px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-    text-align: center;
-    margin-bottom: 25px;
-    min-height: 130px;
+@media (max-width: 900px) {
+    .block-container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
 }
-.metric-value { font-size: 26px; font-weight: 700; color: #D92332; margin-bottom: 8px; }
-.metric-title { font-size: 15px; font-weight: 500; color: #444; }
-/* Espacement entre colonnes et éléments */
-.css-1w0z5fs > div, .stImage { margin-bottom: 20px; }
-div[data-testid="column"] > div { padding-right: 1rem; }
-/* Focus ingrédient */
-div:has(> .element-container) + div:has(.focus-ingredient) { margin-top: 30px; }
-/* Séparation image/texte */
-.css-1xarl3l { margin-bottom: 30px; }
-/* Sidebar titres */
-[data-testid="stSidebar"] h3 { color: #D92332 !important; }
 </style>
 """, unsafe_allow_html=True)
+
 
 # --------- TITRE ---------
 st.markdown("<h1 class='title-card'>🍽️ Fiche Technique - Chez Antoine</h1>", unsafe_allow_html=True)

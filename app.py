@@ -9,6 +9,73 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+st.markdown("""
+<style>
+/* Police */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+html, body, [class*="css"] {
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Titre */
+.title-card {
+  color: #D92332;
+  padding-bottom: 15px;
+}
+
+/* KPI Cards */
+.metric-card {
+  background-color: #FFF;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+  text-align: center;
+  margin-bottom: 25px;
+  min-height: 130px;
+}
+.metric-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #D92332;
+  margin-bottom: 8px;
+}
+.metric-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+}
+
+/* Espacement entre les colonnes */
+.css-1w0z5fs > div {
+  margin-bottom: 20px;
+}
+
+/* Espacement entre image et focus */
+.stImage {
+  margin-bottom: 20px;
+}
+div[data-testid="column"] > div {
+  padding-right: 1rem;
+}
+
+/* Bloc container padding général */
+.block-container {
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+}
+
+/* Focus ingrédient bloc */
+div:has(> .element-container) + div:has(.focus-ingredient) {
+  margin-top: 30px;
+}
+
+/* Séparation claire image/texte */
+.css-1xarl3l {
+  margin-bottom: 30px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 def save_drafts(drafts, filename="data/brouillons.json"):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(drafts, f, indent=2, ensure_ascii=False)
@@ -253,74 +320,6 @@ def generer_detailed_breakdown(plat, composition_finale, cout_matiere, prix_affi
 # ============== CONFIGURATION DE LA PAGE ==============
 
 # ============== STYLES CSS ==============
-st.markdown("""
-<style>
-/* Police */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-html, body, [class*="css"] {
-  font-family: 'Roboto', sans-serif;
-}
-
-/* Titre */
-.title-card {
-  color: #D92332;
-  padding-bottom: 15px;
-}
-
-/* KPI Cards */
-.metric-card {
-  background-color: #FFF;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.08);
-  text-align: center;
-  margin-bottom: 20px;
-  min-height: 130px;
-}
-.metric-value {
-  font-size: 26px;
-  font-weight: 700;
-  color: #D92332;
-  margin-bottom: 8px;
-}
-.metric-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #444;
-}
-
-/* Bloc principal padding */
-.block-container {
-  padding-top: 2rem !important;
-  padding-bottom: 3rem !important;
-}
-
-/* Espacement entre composants */
-.st-emotion-cache-1r4qj8v, .stImage, .focus-bloc {
-  margin-top: 20px !important;
-  margin-bottom: 20px !important;
-}
-
-/* Correction des colonnes Streamlit */
-div[data-testid="column"] > div {
-  padding-right: 1rem;
-}
-
-/* Forcer l'espacement entre image et Focus bloc */
-img {
-  margin-bottom: 1.5rem;
-}
-.focus-ingredient {
-  margin-top: 1.5rem;
-}
-
-/* Séparation nette tableau / texte */
-[data-testid="stHorizontalBlock"] {
-  margin-top: 30px;
-}
-</style>
-""", unsafe_allow_html=True)
-
 
 # ============== TITRE PRINCIPAL ==============
 st.markdown("<h1 class='title-card'>🍽️ Fiche Technique - Chez Antoine</h1>", unsafe_allow_html=True)

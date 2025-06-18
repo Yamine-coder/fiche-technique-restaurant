@@ -33,20 +33,20 @@
       {
         "plat": NaN,
         "ingredient": "Thon",
-        "quantite_g": 40.0,
+        "quantite_g": 50.0,
         "unite": NaN,
         "prix_kg": 5.35,
         "original_plat": NaN,
-        "Coût (€)": 0.214
+        "Coût (€)": 0.2675
       },
       {
         "plat": NaN,
-        "ingredient": "Pdt",
-        "quantite_g": 30.0,
+        "ingredient": "Olive",
+        "quantite_g": 10.0,
         "unite": NaN,
-        "prix_kg": 1.2,
+        "prix_kg": 6.6,
         "original_plat": NaN,
-        "Coût (€)": 0.036
+        "Coût (€)": 0.066
       }
     ],
     "prix_vente": 9.5

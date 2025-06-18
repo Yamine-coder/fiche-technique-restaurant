@@ -20,7 +20,7 @@ def load_drafts(filename="data/brouillons.json"):
 def load_data():
     """Charge les données des recettes et des ingrédients depuis des fichiers Excel."""
     try:
-        recettes = pd.read_excel("data/recettes_complet.xlsx")
+        recettes = pd.read_excel("data/recettes_complet_MAJ2.xlsx")
         ingredients = pd.read_excel("data/ingredients_nettoyes_et_standardises.xlsx")
         # Stockage du nom original
         recettes["original_plat"] = recettes["plat"]
@@ -47,13 +47,19 @@ def calculer_cout(ingredients_df: pd.DataFrame) -> pd.DataFrame:
 
 def get_dough_cost(plat: str) -> float:
     """
-    Renvoie le coût de la pâte à pizza :
+    Renvoie le coût de la pâte selon le plat :
       - panini pizz => 0.12 €
       - plat finissant par S => 0.12 €
       - plat finissant par M => 0.20 €
+      - pains => 0.10 € (1/2 pâte M)
       - sinon => 0 €
     """
-    if plat.lower() == "panini pizz":
+    plat_low = plat.lower()
+    # Cas pains
+    if "pain aux herbes et mozzarella" in plat_low or "pain aux herbes" in plat_low:
+        return 0.10
+    # Cas pizzas
+    elif plat_low == "panini pizz":
         return 0.12
     elif plat.endswith("S"):
         return 0.12
@@ -61,6 +67,8 @@ def get_dough_cost(plat: str) -> float:
         return 0.20
     else:
         return 0.0
+
+
 
 # Dictionnaire de prix de vente
 prix_vente_dict = {
@@ -82,7 +90,7 @@ prix_vente_dict = {
     "Margarita S": 8.50,
     "Margarita M": 10.50,
     "Calzone S": 9.50,
-    "Reine S": 9.50,
+    "Reine S": 9.50,    
     "Reine M": 11.50,
     "Napolitaine S": 9.50,
     "Napolitaine M": 11.50,
@@ -112,8 +120,34 @@ prix_vente_dict = {
     "Végétarienne S": 10.50,
     "Végétarienne M": 12.50,
     "Margarita S": 8.50,
-    "Margarita M": 10.50
+    "Margarita M": 10.50,
+    "Salade Burrata di Parma": 13.50,
+    "Salade burrata di salmone": 13.50,
+    "Burrata feuille La véritable": 6.50,
+    "Pizza Burrata di Parma": 13.50,
+    "Salade César": 9.50,
+    "Salade végétarienne": 9.50,
+    "Salade chèvre": 9.50,
+    "Salade Burrata di Salmone": 13.50,
+    "Pizza Burrata Di Salmone": 13.50,
+    "Pizza Burrata Di Parma": 13.50,
+    "Bolognaise": 9.90,
+    "Truffe": 9.90,
+    "Saumon": 9.90,
+    "Carbonara": 9.90,
+    "Fermière": 9.90,
+    "3 Fromages": 9.90,
+    "Napolitaine": 9.90,
+    "Sicilienne": 9.90,
+    "Arrabiata": 8.90,
+    "Pain aux herbes et mozzarella": 3.00,
+    "Pain aux herbes": 2.50,
+    "Assiette Artichauts": 6.50,
+    "Salade Verte": 5.50,
+    "Arrabiata Poulet": 9.90,
+  
 }
+
 
 # Dictionnaire d'images (exemple)
 images_plats = {
@@ -163,6 +197,36 @@ images_plats = {
     "Silicienne M": "Sicili.webp",
     "4 Saisons S": "4 saisons.webp",
     "4 Saisons M": "4 saisons.webp",
+    # --- PÂTES ---
+    "Bolognaise": "pates_bolognaise.webp",
+    "Truffe": "pates_truffe.webp",
+    "Saumon": "pates_saumon.webp",
+    "Carbonara": "pates_carbonara.webp",
+    "Fermière": "pates_fermiere.webp",
+    "3 Fromages": "pates_3fromages.webp",
+    "Napolitaine": "pates_napolitaine.webp",
+    "Sicilienne": "pates_sicilienne.webp",
+    "Arrabiata": "pates_arrabiata.webp",
+    "Arrabiata Poulet": "pates_arrabiata_poulet.jpeg",
+
+    # --- PAINS MAISON ---
+    "Pain aux herbes et mozzarella": "pain_herbes_mozza.webp",
+    "Pain aux herbes": "pain_herbes.webp",
+
+    # --- SALADES ---
+    "Salade César": "salade_cesar.webp",
+    "Salade végétarienne": "salade_vegetarienne.webp",
+    "Salade chèvre": "salade_chevre.webp",
+    "Assiette Artichauts": "assiette_artichauts.jpeg",
+    "Salade Verte": "salade_verte.jpeg",
+
+    # --- BURRATAS ---
+    "Pizza Burrata di Parma": "pizza_burrata_parma.jpeg",
+    "Burrata feuille La véritable": "burata_feuille.webp",
+    "Pizza Burrata Di Salmone": "pizza_burrata_saumon.jpeg",
+    "Salade Burrata di Salmone": "salade_burrata_saumon.webp",
+    "Salade Burrata di Parma": "salade_burrata_parma.webp",
+    
 }
 
 def afficher_image_plat(plat: str, images_dict: dict):
@@ -236,12 +300,103 @@ coeff_surplus = st.sidebar.slider("Coefficient surplus", 1.0, 2.0, 1.25, 0.05, k
 
 # ============== TRAITEMENT DES MODES ==============
 if mode_analysis == "Analyse d'un plat":
-    plat = st.sidebar.selectbox("Choisissez un plat", recettes["plat"].unique(), key="plat_unique")
+    # ------------------- Analyse d'un plat -------------------
+    # 1️⃣ Sélection de la catégorie
+    categories = recettes["categorie"].unique()
+    categories = ["Tout"] + list(categories)  # Ajoute 'Tout' en premier
+    categorie_choisie = st.sidebar.selectbox("Catégorie", categories)
     
-    # 1. Filtrer les ingrédients et calculer leur coût
+    if categorie_choisie == "Tout":
+        plats_dispo = recettes["plat"].unique()
+    else:
+        plats_dispo = recettes[recettes["categorie"] == categorie_choisie]["plat"].unique()
+
+    plat = st.sidebar.selectbox("Choisissez un plat", plats_dispo, key="plat_unique")
+
+    # 🎯 Gérer la portion si catégorie = "Pâtes"
+    portion_faim = "Petite Faim"  # Par défaut
+    if categorie_choisie.lower() == "pâtes":
+        st.sidebar.markdown("#### 🍝 Portion")
+        portion_faim = st.sidebar.radio(
+            "Choisissez la portion :",
+            ["Petite Faim", "Grosse Faim"],
+            horizontal=True,
+            key="portion_faim_analyse"
+        )
+
+    # 1. Filtrer les ingrédients du plat sélectionné
     ingr_plat = ingredients[ingredients['plat'].str.lower() == plat.lower()].copy()
+
+    # 2. 🔢 Quantités spécifiques pour chaque plat (Grosse Faim)
+    quantites_grosse_faim = {
+        "bolognaise": 330,
+        "truffe": 330,
+        "saumon": 350,
+        "carbonara": 350,
+        "fermière": 330,
+        "3 fromages": 350,
+        "napolitaine": 350,
+        "sicilienne": 330,
+        "arrabiata": 350,
+        "arrabiata poulet": 330,
+    }
+
+    # 3. Adapter la quantité de pâtes si besoin
+    if categorie_choisie.lower() == "pâtes":
+        plat_key = plat.lower().strip()
+        mask_pate = ingr_plat["ingredient"].str.lower().str.contains("spaghetti|penné|pâtes")
+
+        if portion_faim == "Grosse Faim":
+            if plat_key in quantites_grosse_faim and mask_pate.any():
+                nouvelle_quantite = quantites_grosse_faim[plat_key]
+                ingr_plat.loc[mask_pate, "quantite_g"] = nouvelle_quantite
+                
+        else:
+            # Ne rien modifier : on garde les quantités de base (Petite Faim)
+            pass
+
+    # 4. Recalcul du coût matière avec les quantités à jour
     ingr_plat = calculer_cout(ingr_plat)
+
+    # 5. Ajustement du prix de vente pour les pâtes en Grosse Faim
+    prix_vente = prix_vente_dict.get(plat, None)
+    if categorie_choisie.lower() == "pâtes" and portion_faim == "Grosse Faim":
+        prix_vente += 3  # Ajoute 3€ pour Grosse Faim
+    # Choix de l'affichage TTC ou HT
+    affichage_prix = st.radio("Affichage des prix :", ["TTC", "HT"], horizontal=True)
     
+
+    # Taux de TVA applicable (ajuste-le si besoin)
+    taux_tva = 0.10
+
+    # Calcul dynamique selon affichage
+    if affichage_prix == "HT" and prix_vente:
+        prix_affiche = prix_vente / (1 + taux_tva)
+    else:
+        prix_affiche = prix_vente
+
+    
+
+
+    salades_avec_pain = [
+    "salade burrata di parma",
+    "salade burrata di salmone",
+    "salade césar",
+    "salade chèvre",
+    "salade végétarienne"
+]
+    if plat.lower() in salades_avec_pain:
+        ingr_plat = pd.concat([
+        ingr_plat,
+        pd.DataFrame([{
+            "ingredient": "Pain aux herbes",
+            "quantite_g": 0,
+            "prix_kg": 0,
+            "Coût (€)": 0.21,
+            "ingredient_lower": "pain aux herbes"
+        }])
+    ], ignore_index=True)
+
     # 2. Coût matière initial + pâte
     cout_matiere = ingr_plat["Coût (€)"].sum() + get_dough_cost(plat)
     composition_finale = ingr_plat.copy()
@@ -352,39 +507,41 @@ if mode_analysis == "Analyse d'un plat":
     # Fin du traitement spécifique Panini
     
     # 5. Calcul du coût généreux (avec coefficient)
+    # Calcul de la marge basée sur le coût généreux
+ # 5. Calculs
     cout_genereux = cout_matiere * coeff_surplus
-    
-    # 6. Récupération du prix de vente et calcul de la marge
-    prix_vente = prix_vente_dict.get(plat, None)
-    marge_brute = prix_vente - cout_matiere if prix_vente else None
-    if marge_brute is not None and prix_vente and prix_vente > 0:
-        taux_marge = (marge_brute / prix_vente) * 100
-    else:
-        taux_marge = None
-    
-    # 7. Regroupement final des ingrédients
+    marge_generuse = prix_affiche - cout_genereux
+    taux_generuse = (marge_generuse / prix_vente * 100) if prix_affiche and prix_affiche > 0 else None
+
+    marge_brute = prix_affiche - cout_matiere if prix_vente is not None else None
+    taux_marge = (marge_brute / prix_affiche * 100) if marge_brute is not None and prix_vente and prix_vente > 0 else None
+
+    # 6. Regroupement final
     my_agg = {
         "quantite_g": "sum",
         "prix_kg": "mean",
         "Coût (€)": "sum",
-        "original_plat": "first",
-        "ingredient_lower": "first"
+        "original_plat": "first"
     }
     grouped_finale = composition_finale.groupby("ingredient", as_index=False).agg(my_agg)
-    
-    # 8. Génération d'un texte explicatif
-    detailed_breakdown = generer_detailed_breakdown(plat, grouped_finale, cout_matiere, prix_vente)
-    
-    # Affichage des KPI
+
+    # 7. Texte explicatif
+    detailed_breakdown = generer_detailed_breakdown(plat, grouped_finale, cout_matiere, prix_affiche)
+
+    # 🔥 Affichage des KPI fusionnés
     cols = st.columns(5)
+
+    # Bloc 0 : Prix Vente
     with cols[0]:
-        val = f"{prix_vente:.2f}€" if prix_vente else "N/A"
+        val = f"{prix_affiche:.2f}€" if prix_affiche else "N/A"
         st.markdown(
             f"<div class='metric-card'>"
             f"<div class='metric-value'>{val}</div>"
             f"<div class='metric-title'>Prix Vente</div>"
             f"</div>", unsafe_allow_html=True
         )
+
+    # Bloc 1 : Coût Matière
     with cols[1]:
         val = f"{cout_matiere:.2f}€"
         st.markdown(
@@ -393,19 +550,27 @@ if mode_analysis == "Analyse d'un plat":
             f"<div class='metric-title'>Coût Matière</div>"
             f"</div>", unsafe_allow_html=True
         )
+
+    # Bloc 2 : Coût Généreux + Marge Généreuse + Taux dans la même carte
     with cols[2]:
-        val = f"{cout_genereux:.2f}€"
-        added_percent = (coeff_surplus - 1) * 100  # ex: 1.08 => 8%
+        val_gen = f"{cout_genereux:.2f}€"
+        val_marge = f"{marge_generuse:.2f}€"
+        val_taux = f"{taux_generuse:.1f}%" if taux_generuse is not None else "N/A"
+        percent_text = f"(+{(coeff_surplus - 1)*100:.0f}%)"
+        
         st.markdown(
             f"<div class='metric-card'>"
-            f"<div class='metric-value'>{val}</div>"
-            f"<div style='font-size:13px; color: #999;'>"
-            f"(+{added_percent:.0f}%)"
-            f"</div>"
+            f"<div class='metric-value'>{val_gen}</div>"
+            f"<div style='font-size:13px; color: #999;'>{percent_text}</div>"
             f"<div class='metric-title'>Coût Généreux</div>"
-            f"</div>", 
-            unsafe_allow_html=True
+            f"<div style='font-size:13px; margin-top:8px;'>"
+            f"💸 Marge : <strong>{val_marge}</strong><br>"
+            f"📈 Taux : <strong>{val_taux}</strong>"
+            f"</div>"
+            f"</div>", unsafe_allow_html=True
         )
+
+    # Bloc 3 : Marge Brute
     with cols[3]:
         val = f"{marge_brute:.2f}€" if marge_brute is not None else "N/A"
         st.markdown(
@@ -414,6 +579,8 @@ if mode_analysis == "Analyse d'un plat":
             f"<div class='metric-title'>Marge Brute</div>"
             f"</div>", unsafe_allow_html=True
         )
+
+    # Bloc 4 : Taux de Marge
     with cols[4]:
         val = f"{taux_marge:.1f}%" if taux_marge is not None else "N/A"
         st.markdown(
@@ -422,7 +589,7 @@ if mode_analysis == "Analyse d'un plat":
             f"<div class='metric-title'>Taux de Marge</div>"
             f"</div>", unsafe_allow_html=True
         )
-    
+
     # Affichage de l'image et des détails
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -471,8 +638,31 @@ elif mode_analysis == "Analyse comparative":
 
     all_plats = recettes["plat"].unique()
 
-    selected_plats = st.sidebar.multiselect("Plats à comparer", all_plats)
+    categories = recettes["categorie"].unique()
+    categories = ["Tout"] + list(categories)  # Ajoute 'Tout' tout en haut
+
+    categorie_comp = st.sidebar.selectbox("Catégorie pour comparaison", categories, key="cat_comp")
+
+    if categorie_comp == "Tout":
+        plats_cat = recettes["plat"].unique()
+    else:
+        plats_cat = recettes[recettes["categorie"] == categorie_comp]["plat"].unique()
+
+    selected_plats = st.sidebar.multiselect("Plats à comparer", plats_cat, key="selected_plats")
     seuil_marge = st.sidebar.slider("Seuil de rentabilité (%)", 40, 90, 70)
+    # Choix de l'affichage HT ou TTC
+    affichage_prix_comparatif = st.sidebar.radio("Base de calcul :", ["TTC", "HT"], horizontal=True, key="affichage_comparatif")
+    with st.sidebar.expander("ℹ️ Pourquoi afficher en HT ?"):
+        st.markdown("""
+        <b>Pourquoi HT ?</b><br>
+        • En restauration, la TVA est <b>reversée à l’État</b>, donc ne constitue pas un gain.<br>
+        • Il est plus juste de calculer les marges en <b>hors taxes (HT)</b>.<br><br>
+        <u>Sources :</u><br>
+        – Zenchef, Combo, Compta-Facile, Wikipedia (marge en restauration)
+        """, unsafe_allow_html=True)
+
+
+
     with st.sidebar.expander("❓ Pourquoi 70% est un bon seuil ?"):
         st.markdown("""
     - En restauration, on vise **un taux de marge matière de 70%** (ou plus).
@@ -500,7 +690,7 @@ elif mode_analysis == "Analyse comparative":
         👉 Exemple : un plat pas cher peut avoir un taux élevé mais une petite marge en valeur.
         """)
 
-    def analyse_plat(plat):
+    def analyse_plat(plat, seuil_marge, affichage_ht=True):
         ingr = ingredients[ingredients['plat'].str.lower() == plat.lower()].copy()
         ingr = calculer_cout(ingr)
         base_cost = ingr["Coût (€)"].sum()
@@ -515,9 +705,13 @@ elif mode_analysis == "Analyse comparative":
         else:
             total_cost = base_cost + dough
 
-        prix = prix_vente_dict.get(plat, 0)
-        marge = prix - total_cost
-        taux = (marge / prix * 100) if prix > 0 else None
+        prix_ttc = prix_vente_dict.get(plat, 0)
+        taux_tva = 0.10
+        prix_affiche = prix_ttc / (1 + taux_tva) if affichage_ht else prix_ttc
+
+        marge = prix_affiche - total_cost
+        taux = (marge / prix_affiche * 100) if prix_affiche > 0 else None
+
 
         if taux is None:
             note = "❓ Données manquantes"
@@ -533,8 +727,8 @@ elif mode_analysis == "Analyse comparative":
             note = "❌ À revoir — non rentable"
 
         prix_conseille = total_cost / (1 - seuil_marge / 100) if seuil_marge < 100 else None
-        delta_prix = prix_conseille - prix if prix_conseille else None
-        delta_pct = (delta_prix / prix * 100) if prix > 0 and delta_prix else None
+        delta_prix = prix_conseille - prix_affiche if prix_conseille else None
+        delta_pct = (delta_prix / prix_affiche * 100) if prix_affiche > 0 and delta_prix else None
 
         if delta_pct is None:
             ajustement = "❓"
@@ -547,7 +741,7 @@ elif mode_analysis == "Analyse comparative":
 
         return {
             "Plat": plat,
-            "Prix (€)": round(prix, 2),
+            "Prix (€)": round(prix_affiche, 2),
             "Coût (€)": round(total_cost, 2),
             "Marge (€)": round(marge, 2),
             "Taux (%)": round(taux, 1) if taux else None,
@@ -558,8 +752,11 @@ elif mode_analysis == "Analyse comparative":
             "Ajustement": ajustement
         }
 
-    plats_analyzes = selected_plats if selected_plats else all_plats
-    df = pd.DataFrame([analyse_plat(p) for p in plats_analyzes])
+    plats_analyzes = selected_plats if selected_plats else plats_cat
+
+    affichage_ht = affichage_prix_comparatif == "HT"
+    df = pd.DataFrame([analyse_plat(p, seuil_marge, affichage_ht=affichage_ht) for p in plats_analyzes])
+
 
     marge_moy = df["Marge (€)"].mean()
     taux_moy = df["Taux (%)"].mean()
@@ -567,6 +764,11 @@ elif mode_analysis == "Analyse comparative":
     col1, col2 = st.columns(2)
     col1.metric("💰 Marge Moyenne", f"{marge_moy:.2f} €")
     col2.metric("📈 Taux de Marge Moyen", f"{taux_moy:.1f} %")
+    if not affichage_ht:
+        st.info("ℹ️ Les prix sont affichés **TTC** dans cette analyse comparative.")
+    else:
+        st.info("ℹ️ Les prix sont affichés **HT** pour une meilleure analyse de rentabilité.")
+
 
     classement_key = "Marge (€)" if classement_par == "Marge (€)" else "Taux (%)"
 
@@ -592,7 +794,7 @@ elif mode_analysis == "Analyse comparative":
 
     st.markdown("### 🔎 Détail des plats sélectionnés")
     st.dataframe(df.sort_values(classement_key, ascending=False), use_container_width=True, hide_index=True)
-
+    
     import plotly.express as px
     st.markdown("### 📊 Comparaison Visuelle (Prix vs Coût vs Marge)")
 
@@ -604,7 +806,6 @@ elif mode_analysis == "Analyse comparative":
                             var_name="Type", value_name="Valeur (€)")
     fig = px.bar(df_melt, x="Plat", y="Valeur (€)", color="Type", barmode="group")
     st.plotly_chart(fig, use_container_width=True)
-
 
 
 
@@ -644,7 +845,7 @@ elif mode_analysis == "Modifier un plat":
                     st.success(f"Plat supprimé : {plat['nom']}")
                     st.rerun()
 
-    # ======= ÉDITION =======
+    # ======= ÉDITEUR =======
     elif mode_vue == "Édition":
         st.session_state.vue_actuelle = "Édition"
 
@@ -721,14 +922,33 @@ elif mode_analysis == "Modifier un plat":
             st.session_state.plat_actif["composition"] = ingr_modifie.to_dict(orient="records")
             st.rerun()
 
+        st.markdown("### 📝 Modifier le grammage d'un ingrédient")
+        for idx, row in ingr_modifie.iterrows():
+            col1, col2, col3 = st.columns([3, 2, 1])
+            col1.write(row["ingredient"])
+            new_qty = col2.number_input(
+                "Quantité (g)", 
+                min_value=0.0, 
+                value=float(row["quantite_g"]), 
+                step=5.0, 
+                key=f"edit_qty_{idx}"
+            )
+            if new_qty != row["quantite_g"]:
+                ingr_modifie.at[idx, "quantite_g"] = new_qty
+                ingr_modifie = calculer_cout(ingr_modifie)
+                st.session_state.plat_actif["composition"] = ingr_modifie.to_dict(orient="records")
+                st.success(f"Quantité modifiée pour {row['ingredient']}")
+                st.rerun()
+
         ingr_modifie = calculer_cout(ingr_modifie)
         cout_matiere = ingr_modifie["Coût (€)"].sum()
-        marge_brute = prix_vente - cout_matiere
-        taux_marge = (marge_brute / prix_vente) * 100 if prix_vente else 0
+        marge_brute = prix_affiche - cout_matiere
+        taux_marge = (marge_brute / prix_affiche) * 100 if prix_affiche and prix_affiche > 0 else None
+
 
         st.markdown("### 🧾 Récapitulatif")
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Prix vente", f"{prix_vente:.2f} €")
+        col1.metric("Prix vente", f"{prix_affiche:.2f} €")
         col2.metric("Coût matière", f"{cout_matiere:.2f} €")
         col3.metric("Marge brute", f"{marge_brute:.2f} €")
         col4.metric("Taux marge", f"{taux_marge:.1f} %")
@@ -736,19 +956,28 @@ elif mode_analysis == "Modifier un plat":
         st.markdown("### 📋 Nouvelle composition")
         st.dataframe(ingr_modifie[["ingredient", "quantite_g", "prix_kg", "Coût (€)"]], use_container_width=True)
 
-        if st.button("💾 Sauvegarder"):
-            plat_final = {
-                "nom": nouveau_nom,
-                "base": plat_data["base"],
-                "composition": ingr_modifie.to_dict(orient="records"),
-                "prix_vente": prix_vente
-            }
-            brouillons = [b for b in st.session_state.brouillons if b["nom"] != nouveau_nom]
-            brouillons.append(plat_final)
-            save_drafts(brouillons)
-            st.session_state.brouillons = brouillons
-            st.session_state.plat_actif = plat_final
-            st.success("✔️ Plat sauvegardé avec succès !")
+        # Utilisation d'un formulaire pour la sauvegarde
+        with st.form(key="form_sauvegarde"):
+            submit_save = st.form_submit_button("💾 Sauvegarder")
+            if submit_save:
+                plat_final = {
+                    "nom": nouveau_nom,
+                    "base": plat_data["base"],
+                    "composition": ingr_modifie.to_dict(orient="records"),
+                    "prix_vente": prix_vente,
+                }
+                # Remplace le plat si même nom, sinon ajoute
+                brouillons = [b for b in st.session_state.brouillons if b["nom"] != nouveau_nom]
+                brouillons.append(plat_final)
+                save_drafts(brouillons)
+                st.session_state.brouillons = brouillons
+                st.session_state.plat_actif = plat_final
+                st.success("✔️ Plat sauvegardé avec succès !")
 
+       
 
-
+        # Ajout du bouton de retour
+        if st.button("⬅️ Retour à mes plats"):
+            st.session_state.vue_actuelle = "Mes plats"
+            st.session_state.plat_actif = None
+            st.rerun()

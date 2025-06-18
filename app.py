@@ -12,101 +12,44 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* Police */
+/* Utilise Roboto partout */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-html, body, [class*="css"] {
-  font-family: 'Roboto', sans-serif;
-}
-
-/* Titre */
-.title-card {
-  color: #D92332;
-  padding-bottom: 15px;
-}
-
-/* KPI Cards */
-.metric-card {
-  background-color: #FFF;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.08);
-  text-align: center;
-  margin-bottom: 25px;
-  min-height: 130px;
-}
-.metric-value {
-  font-size: 26px;
-  font-weight: 700;
-  color: #D92332;
-  margin-bottom: 8px;
-}
-.metric-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #444;
-}
-
-/* Espacement entre les colonnes */
-.css-1w0z5fs > div {
-  margin-bottom: 20px;
-}
-
-/* Espacement entre image et focus */
-.stImage {
-  margin-bottom: 20px;
-}
-div[data-testid="column"] > div {
-  padding-right: 1rem;
-}
-
-/* Bloc container padding général */
+html, body, [class*="css"] { font-family: 'Roboto', sans-serif; }
+/* Fixe la largeur max du container principal et padding */
 .block-container {
-  padding-top: 2rem;
-  padding-bottom: 3rem;
-}
-
-/* Focus ingrédient bloc */
-div:has(> .element-container) + div:has(.focus-ingredient) {
-  margin-top: 30px;
-}
-
-/* Séparation claire image/texte */
-.css-1xarl3l {
-  margin-bottom: 30px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<style>
-/* Largeur maximale container principale Streamlit */
-.block-container {
-    max-width: 1800px !important;   /* ou 1600px, ajuste selon ton goût */
+    max-width: 1700px !important;
     padding-left: 2rem;
     padding-right: 2rem;
+    transition: max-width 0.2s;
 }
-</style>
-""", unsafe_allow_html=True)
-st.markdown("""
-<style>
-/* Force le recalcul du flex sur les colonnes Streamlit après resize */
-[class^="stColumns"] {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    align-items: stretch !important;
-    gap: 18px !important;
-}
+/* Titre principal */
+.title-card { color: #D92332; padding-bottom: 15px; }
+/* Cards de KPIs */
 .metric-card {
-    flex: 1 1 160px !important;
-    min-width: 160px !important;
-    max-width: 100% !important;
-    margin-right: 18px !important;
-    margin-bottom: 18px !important;
-    box-sizing: border-box !important;
+    background: #FFF;
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+    text-align: center;
+    margin-bottom: 25px;
+    min-height: 130px;
 }
+.metric-value { font-size: 26px; font-weight: 700; color: #D92332; margin-bottom: 8px; }
+.metric-title { font-size: 15px; font-weight: 500; color: #444; }
+/* Espacement entre colonnes et éléments */
+.css-1w0z5fs > div, .stImage { margin-bottom: 20px; }
+div[data-testid="column"] > div { padding-right: 1rem; }
+/* Focus ingrédient */
+div:has(> .element-container) + div:has(.focus-ingredient) { margin-top: 30px; }
+/* Séparation image/texte */
+.css-1xarl3l { margin-bottom: 30px; }
+/* Sidebar titres */
+[data-testid="stSidebar"] h3 { color: #D92332 !important; }
 </style>
 """, unsafe_allow_html=True)
 
+# --------- TITRE ---------
+st.markdown("<h1 class='title-card'>🍽️ Fiche Technique - Chez Antoine</h1>", unsafe_allow_html=True)
 
 def save_drafts(drafts, filename="data/brouillons.json"):
     with open(filename, "w", encoding="utf-8") as f:
@@ -332,29 +275,18 @@ images_plats = {
     
 }
 
-def afficher_image_plat(plat: str, images_dict: dict):
-    """Affiche l'image du plat ou l'image par défaut."""
+def afficher_image_plat(plat, images_dict):
     image_path = f'images/{images_dict.get(plat, "default.jpg")}'
     if not os.path.exists(image_path):
         image_path = "images/default.jpg"
     st.image(image_path, use_container_width=True)
 
 def generer_detailed_breakdown(plat, composition_finale, cout_matiere, prix_affiche):
-    """
-    Génère une chaîne de texte expliquant le calcul.
-    """
     breakdown = f"**Détails du calcul pour {plat}**\n\n"
     for idx, row in composition_finale.iterrows():
         breakdown += f"- {row['ingredient']}: {row['Coût (€)']:.2f} €\n"
     breakdown += f"\n**Coût Matière (ingrédients + pâte)**: {cout_matiere:.2f} €\n"
     return breakdown
-
-# ============== CONFIGURATION DE LA PAGE ==============
-
-# ============== STYLES CSS ==============
-
-# ============== TITRE PRINCIPAL ==============
-st.markdown("<h1 class='title-card'>🍽️ Fiche Technique - Chez Antoine</h1>", unsafe_allow_html=True)
 
 # ============== CHARGEMENT DES DONNÉES ==============
 recettes, ingredients = load_data()
@@ -1053,3 +985,4 @@ elif mode_analysis == "Modifier un plat":
             st.session_state.vue_actuelle = "Mes plats"
             st.session_state.plat_actif = None
             st.rerun()
+st.write("DEBUG – largeur container :", st.get_option("browser.gatherUsageStats"))

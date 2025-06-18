@@ -4,6 +4,11 @@ import plotly.express as px
 import os
 import json
 
+st.set_page_config(
+    page_title="🍕 Fiche Technique - Chez Antoine",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 def save_drafts(drafts, filename="data/brouillons.json"):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(drafts, f, indent=2, ensure_ascii=False)
@@ -13,7 +18,6 @@ def load_drafts(filename="data/brouillons.json"):
         with open(filename, "r", encoding="utf-8") as f:
             return json.load(f)
     return []
-
 
 # ============== FONCTIONS ET DONNÉES ==============
 @st.cache_data
@@ -247,7 +251,6 @@ def generer_detailed_breakdown(plat, composition_finale, cout_matiere, prix_vent
     return breakdown
 
 # ============== CONFIGURATION DE LA PAGE ==============
-st.set_page_config(page_title="🍕 Fiche Technique - Chez Antoine", layout="wide")
 
 # ============== STYLES CSS ==============
 st.markdown("""

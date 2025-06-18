@@ -75,6 +75,17 @@ div:has(> .element-container) + div:has(.focus-ingredient) {
 }
 </style>
 """, unsafe_allow_html=True)
+st.markdown("""
+<style>
+/* Largeur maximale container principale Streamlit */
+.block-container {
+    max-width: 1800px !important;   /* ou 1600px, ajuste selon ton goût */
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 def save_drafts(drafts, filename="data/brouillons.json"):
     with open(filename, "w", encoding="utf-8") as f:

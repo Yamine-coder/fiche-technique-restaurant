@@ -274,7 +274,7 @@ html, body, [class*="css"] {
   padding: 20px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.08);
   text-align: center;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
   min-height: 130px;
 }
 .metric-value {
@@ -289,36 +289,38 @@ html, body, [class*="css"] {
   color: #444;
 }
 
-/* Espacement entre les colonnes */
-.css-1w0z5fs > div {
-  margin-bottom: 20px;
+/* Bloc principal padding */
+.block-container {
+  padding-top: 2rem !important;
+  padding-bottom: 3rem !important;
 }
 
-/* Espacement entre image et focus */
-.stImage {
-  margin-bottom: 20px;
+/* Espacement entre composants */
+.st-emotion-cache-1r4qj8v, .stImage, .focus-bloc {
+  margin-top: 20px !important;
+  margin-bottom: 20px !important;
 }
+
+/* Correction des colonnes Streamlit */
 div[data-testid="column"] > div {
   padding-right: 1rem;
 }
 
-/* Bloc container padding général */
-.block-container {
-  padding-top: 2rem;
-  padding-bottom: 3rem;
+/* Forcer l'espacement entre image et Focus bloc */
+img {
+  margin-bottom: 1.5rem;
+}
+.focus-ingredient {
+  margin-top: 1.5rem;
 }
 
-/* Focus ingrédient bloc */
-div:has(> .element-container) + div:has(.focus-ingredient) {
+/* Séparation nette tableau / texte */
+[data-testid="stHorizontalBlock"] {
   margin-top: 30px;
-}
-
-/* Séparation claire image/texte */
-.css-1xarl3l {
-  margin-bottom: 30px;
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ============== TITRE PRINCIPAL ==============
 st.markdown("<h1 class='title-card'>🍽️ Fiche Technique - Chez Antoine</h1>", unsafe_allow_html=True)

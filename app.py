@@ -89,54 +89,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown("""
 <style>
-/* Responsive pour les cartes KPI et les colonnes */
-.metric-card {
-    min-width: 160px;
-    max-width: 100%;
-    margin-right: 18px !important;
-    margin-bottom: 18px !important;
-    flex: 1 1 160px;
-    box-sizing: border-box;
-}
-.css-1r6slb0 > div {
+/* Force le recalcul du flex sur les colonnes Streamlit après resize */
+[class^="stColumns"] {
+    display: flex !important;
     flex-wrap: wrap !important;
+    align-items: stretch !important;
     gap: 18px !important;
 }
-img {
-    max-width: 100%;
-    height: auto;
-    margin-bottom: 24px !important;
-    border-radius: 12px;
-}
-div[style*="border-left: 4px solid"] {
-    margin-bottom: 24px !important;
-    margin-top: 8px !important;
-}
-@media (max-width: 900px) {
-    .metric-card {
-        min-width: 110px;
-        font-size: 13px;
-        padding: 8px;
-    }
-    .css-1r6slb0 > div {
-        gap: 8px !important;
-    }
-    .title-card {
-        font-size: 1.3rem !important;
-    }
-}
-@media (max-width: 600px) {
-    .metric-card {
-        min-width: 90px;
-        font-size: 12px;
-        padding: 5px;
-    }
-    .title-card {
-        font-size: 1.1rem !important;
-    }
+.metric-card {
+    flex: 1 1 160px !important;
+    min-width: 160px !important;
+    max-width: 100% !important;
+    margin-right: 18px !important;
+    margin-bottom: 18px !important;
+    box-sizing: border-box !important;
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 def save_drafts(drafts, filename="data/brouillons.json"):
     with open(filename, "w", encoding="utf-8") as f:

@@ -255,57 +255,70 @@ def generer_detailed_breakdown(plat, composition_finale, cout_matiere, prix_affi
 # ============== STYLES CSS ==============
 st.markdown("""
 <style>
-  .title-card {
-    color: #D92332;
-    padding-bottom: 15px;
-  }
+/* Police */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+html, body, [class*="css"] {
+  font-family: 'Roboto', sans-serif;
+}
 
-  .metric-card {
-    background-color: #FFF;
-    border-radius: 10px;
-    padding: 15px 20px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    text-align: center;
-    margin: 0 10px 20px 10px;
-    min-height: 120px;
-  }
+/* Titre */
+.title-card {
+  color: #D92332;
+  padding-bottom: 15px;
+}
 
-  .metric-value {
-    font-size: 24px;
-    font-weight: 700;
-    color: #D92332;
-    margin-bottom: 8px;
-  }
+/* KPI Cards */
+.metric-card {
+  background-color: #FFF;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+  text-align: center;
+  margin-bottom: 25px;
+  min-height: 130px;
+}
+.metric-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #D92332;
+  margin-bottom: 8px;
+}
+.metric-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+}
 
-  .metric-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: #555;
-  }
+/* Espacement entre les colonnes */
+.css-1w0z5fs > div {
+  margin-bottom: 20px;
+}
 
-  .element-container {
-    margin-bottom: 20px !important;
-  }
+/* Espacement entre image et focus */
+.stImage {
+  margin-bottom: 20px;
+}
+div[data-testid="column"] > div {
+  padding-right: 1rem;
+}
 
-  .block-container {
-    padding: 2rem 1rem 3rem 1rem;
-  }
+/* Bloc container padding général */
+.block-container {
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+}
 
-  .stPlotlyChart {
-    margin-top: 20px;
-  }
+/* Focus ingrédient bloc */
+div:has(> .element-container) + div:has(.focus-ingredient) {
+  margin-top: 30px;
+}
 
-  .stImage {
-    margin-top: 10px;
-    margin-bottom: 10px;
-  }
-
-  .css-ocqkz7 {
-    padding-bottom: 25px;
-  }
+/* Séparation claire image/texte */
+.css-1xarl3l {
+  margin-bottom: 30px;
+}
 </style>
 """, unsafe_allow_html=True)
-
 
 # ============== TITRE PRINCIPAL ==============
 st.markdown("<h1 class='title-card'>🍽️ Fiche Technique - Chez Antoine</h1>", unsafe_allow_html=True)

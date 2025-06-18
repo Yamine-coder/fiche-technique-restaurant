@@ -10,6 +10,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# TEST LAYOUT BUG KPI COLUMNS
+cols = st.columns(5)
+for i in range(5):
+    cols[i].metric(f"KPI {i+1}", f"{i*10+10}")
+
+st.write("Lorem ipsum dolor sit amet, consectetur adipiscing elit.")
 
 
 

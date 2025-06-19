@@ -9,24 +9,19 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+# juste après st.set_page_config
 st.markdown("""
-<style id="layout-fix">
-/* --- ①  rétrécir la sidebar --- */
-section[data-testid="stSidebar"] {width:18rem;}
+<style id="custom">
+/* ── Sidebar ─────────────────────────────── */
+section[data-testid="stSidebar"]{width:18rem!important;}
 section[data-testid="stSidebar"][aria-expanded="false"]{
-    transform:translateX(-18rem);}
+    transform:translateX(-18rem)!important;}
+/* ── Colonnes : marge verticale ──────────── */
+div[data-testid="column"]>div{margin-bottom:20px;}
+/* ── Cartes : forcer la largeur flexible ── */
+.metric-card{width:100%!important;min-width:0;}
+</style>""", unsafe_allow_html=True)
 
-/* --- ②  avancer la zone main exactement de 18 rem --- */
-[data-testid="stAppViewContainer"] > .main {
-    padding-left: calc(18rem + 1rem);   /* +1 rem = l’espace gou­tter par défaut */
-}
-
-/* --- ③  sur mobile (<768 px) on remet à zéro --- */
-@media (max-width:768px){
-  [data-testid="stAppViewContainer"] > .main{padding-left:1rem;}
-}
-</style>
-""", unsafe_allow_html=True)
 
 
 

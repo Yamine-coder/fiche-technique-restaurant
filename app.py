@@ -4,43 +4,20 @@ import plotly.express as px
 import os
 import json
 
-def trigger_resize():
-    st.write("<script>window.dispatchEvent(new Event('resize'));</script>", unsafe_allow_html=True)
-
 st.set_page_config(
     page_title="🍕 Fiche Technique - Chez Antoine",
-    layout="wide",  # 👈 IMPERATIF POUR RESPONSIVE
+    layout="wide",
     initial_sidebar_state="expanded"
 )
+st.markdown("""
+<style id="custom">
+section[data-testid="stSidebar"]{width:18rem;}
+section[data-testid="stSidebar"][aria-expanded="false"]{
+    transform:translateX(-18rem);}
+div[data-testid="column"]>div{margin-bottom:20px;}
+</style>
+""", unsafe_allow_html=True)
 
-st.markdown(
-    """
-    <style>
-    /* Utilise toute la largeur disponible dans le container principal */
-    .block-container {
-        width: 100% !important;
-        max-width: 1700px !important;
-        padding: 1rem 2rem 2rem 2rem;
-        transition: width 0.2s ease;
-    }
-
-    /* Ajustement du sidebar lors du toggle (flèche) */
-    [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
-        min-width: 300px;
-        max-width: 300px;
-    }
-    [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
-        min-width: 300px;
-        max-width: 300px;
-        margin-left: -300px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# --------- TITRE ---------
-st.markdown("<h1 class='title-card'>🍽️ Fiche Technique - Chez Antoine</h1>", unsafe_allow_html=True)
 
 def save_drafts(drafts, filename="data/brouillons.json"):
     with open(filename, "w", encoding="utf-8") as f:
@@ -266,13 +243,17 @@ images_plats = {
     
 }
 
-def afficher_image_plat(plat, images_dict):
+def afficher_image_plat(plat: str, images_dict: dict):
+    """Affiche l'image du plat ou l'image par défaut."""
     image_path = f'images/{images_dict.get(plat, "default.jpg")}'
     if not os.path.exists(image_path):
         image_path = "images/default.jpg"
     st.image(image_path, use_container_width=True)
 
 def generer_detailed_breakdown(plat, composition_finale, cout_matiere, prix_affiche):
+    """
+    Génère une chaîne de texte expliquant le calcul.
+    """
     breakdown = f"**Détails du calcul pour {plat}**\n\n"
     for idx, row in composition_finale.iterrows():
         breakdown += f"- {row['ingredient']}: {row['Coût (€)']:.2f} €\n"
@@ -282,6 +263,9 @@ def generer_detailed_breakdown(plat, composition_finale, cout_matiere, prix_affi
 # ============== CONFIGURATION DE LA PAGE ==============
 
 # ============== STYLES CSS ==============
+
+# ============== TITRE PRINCIPAL ==============
+st.markdown("<h1 class='title-card'>🍽️ Fiche Technique - Chez Antoine</h1>", unsafe_allow_html=True)
 
 # ============== CHARGEMENT DES DONNÉES ==============
 recettes, ingredients = load_data()
@@ -296,7 +280,6 @@ mode_analysis = st.sidebar.radio("Mode d'analyse", ["Analyse d'un plat", "Analys
 
 # Coefficient surplus (clé unique pour éviter les conflits)
 coeff_surplus = st.sidebar.slider("Coefficient surplus", 1.0, 2.0, 1.25, 0.05, key="coeff_surplus")
-trigger_resize()  # 🔁 Force le recalcul du layout dès qu’on interagit avec la sidebar
 
 # ============== TRAITEMENT DES MODES ==============
 if mode_analysis == "Analyse d'un plat":
@@ -807,7 +790,6 @@ elif mode_analysis == "Analyse comparative":
     fig = px.bar(df_melt, x="Plat", y="Valeur (€)", color="Type", barmode="group")
     st.plotly_chart(fig, use_container_width=True)
 
-    trigger_resize()
 
 
 

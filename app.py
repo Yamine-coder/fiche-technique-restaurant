@@ -10,13 +10,24 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 st.markdown("""
-<style id="custom">
-section[data-testid="stSidebar"]{width:18rem;}
+<style id="layout-fix">
+/* --- ①  rétrécir la sidebar --- */
+section[data-testid="stSidebar"] {width:18rem;}
 section[data-testid="stSidebar"][aria-expanded="false"]{
     transform:translateX(-18rem);}
-div[data-testid="column"]>div{margin-bottom:20px;}
+
+/* --- ②  avancer la zone main exactement de 18 rem --- */
+[data-testid="stAppViewContainer"] > .main {
+    padding-left: calc(18rem + 1rem);   /* +1 rem = l’espace gou­tter par défaut */
+}
+
+/* --- ③  sur mobile (<768 px) on remet à zéro --- */
+@media (max-width:768px){
+  [data-testid="stAppViewContainer"] > .main{padding-left:1rem;}
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 
 def save_drafts(drafts, filename="data/brouillons.json"):

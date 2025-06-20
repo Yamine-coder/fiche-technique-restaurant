@@ -42,13 +42,13 @@
       {
         "plat": NaN,
         "ingredient": "Olive",
-        "quantite_g": 10.0,
+        "quantite_g": 15.0,
         "unite": NaN,
         "prix_kg": 6.6,
         "original_plat": NaN,
-        "Coût (€)": 0.066
+        "Coût (€)": 0.099
       }
     ],
-    "prix_vente": 9.5
+    "prix_affiche": 10.0
   }
 ]

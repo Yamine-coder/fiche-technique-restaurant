@@ -4,3 +4,4 @@ plotly>=5.0.0
 openpyxl>=3.0.0
 pulp
 matplotlib>=3.5.0
+scipy>=1.10.0

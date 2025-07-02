@@ -1,54 +1,74 @@
 [
   {
-    "nom": "Calzone S Tunisienne",
-    "base": "Calzone S",
+    "nom": "3 Fromages personnalisé",
+    "base": "3 Fromages",
     "composition": [
       {
-        "plat": "Calzone S",
-        "ingredient": "sauce tomate",
-        "quantite_g": 55.0,
+        "plat": "3 Fromages",
+        "ingredient": "crème fraîche liquide",
+        "quantite_g": 215.0,
         "unite": "g",
-        "prix_kg": 2.63,
-        "original_plat": "Calzone S",
-        "Coût (€)": 0.14465
+        "prix_kg": 3.3,
+        "original_plat": "3 Fromages",
+        "Coût (€)": 0.7095
       },
       {
-        "plat": "Calzone S",
-        "ingredient": "Mozzarella",
-        "quantite_g": 55.0,
+        "plat": "3 Fromages",
+        "ingredient": "Fromage gorgonzola",
+        "quantite_g": 35.0,
         "unite": "g",
-        "prix_kg": 5.85,
-        "original_plat": "Calzone S",
-        "Coût (€)": 0.32175
+        "prix_kg": 8.35,
+        "original_plat": "3 Fromages",
+        "Coût (€)": 0.29225
       },
       {
-        "plat": "Calzone S",
-        "ingredient": "Œuf",
-        "quantite_g": 50.0,
+        "plat": "3 Fromages",
+        "ingredient": "Parmesan",
+        "quantite_g": 20.0,
         "unite": "g",
-        "prix_kg": 3.48,
-        "original_plat": "Calzone S",
-        "Coût (€)": 0.174
+        "prix_kg": 15.25,
+        "original_plat": "3 Fromages",
+        "Coût (€)": 0.305
+      },
+      {
+        "plat": "3 Fromages",
+        "ingredient": "Spaghetti ou Penné\t",
+        "quantite_g": 225.0,
+        "unite": "g",
+        "prix_kg": 2.45,
+        "original_plat": "3 Fromages",
+        "Coût (€)": 0.55125
       },
       {
         "plat": NaN,
-        "ingredient": "Thon",
+        "ingredient": "Champignons de paris",
         "quantite_g": 50.0,
         "unite": NaN,
-        "prix_kg": 5.35,
+        "prix_kg": 3.0,
         "original_plat": NaN,
-        "Coût (€)": 0.2675
+        "Coût (€)": 0.15
       },
       {
         "plat": NaN,
-        "ingredient": "Olive",
-        "quantite_g": 15.0,
+        "ingredient": "Ail",
+        "quantite_g": 50.0,
         "unite": NaN,
-        "prix_kg": 6.6,
+        "prix_kg": 4.0,
         "original_plat": NaN,
-        "Coût (€)": 0.099
+        "Coût (€)": 0.2
+      },
+      {
+        "plat": NaN,
+        "ingredient": "Aneth",
+        "quantite_g": 50.0,
+        "unite": NaN,
+        "prix_kg": 6.0,
+        "original_plat": NaN,
+        "Coût (€)": 0.3
       }
     ],
-    "prix_affiche": 10.0
+    "prix_affiche": 9.9,
+    "affichage_ht": false,
+    "nom_original": "3 Fromages personnalisé"
   }
 ]

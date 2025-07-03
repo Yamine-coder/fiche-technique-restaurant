@@ -1199,8 +1199,25 @@ def calculate_margin_rate(plat, affichage_ht, taux_tva):
 def calculer_cout(ingredients_df: pd.DataFrame) -> pd.DataFrame:
     """Calcule le coût des ingrédients (colonne 'Coût (€)')."""
     # Préserver les coûts fixes pour les ingrédients spéciaux (pâtes)
-    mask_pate_panini = ingredients_df["ingredient"].str.lower() == "pâte à panini"
-    mask_pate_pizza = ingredients_df["ingredient"].str.lower() == "pâte à pizza"
+    if 'ingredient_original' in ingredients_df.columns:
+        # Utiliser l'ingrédient original pour détecter les ingrédients spéciaux
+        mask_pate_panini = ingredients_df["ingredient_original"].str.lower() == "pâte à panini"
+        mask_pate_pizza = ingredients_df["ingredient_original"].str.lower() == "pâte à pizza"
+    else:
+        # === VUE ÉDITION D'UN PLAT ===
+        plat_data = st.session_state.plat_actif
+        
+        # Vérification automatique du message de succès
+        if "save_success_time" in st.session_state:
+            current_time = time.time()
+            if current_time - st.session_state.save_success_time > 3:
+                del st.session_state.save_success_time
+                st.rerun()
+        
+        # Stocker une copie de l'état initial du plat si ce n'est pas déjà fait
+        mask_pate_panini = ingredients_df["ingredient"].str.lower() == "pâte à panini"
+        mask_pate_pizza = ingredients_df["ingredient"].str.lower() == "pâte à pizza"
+    
     mask_special = mask_pate_panini | mask_pate_pizza
     
     # Recalculer uniquement les coûts pour les ingrédients non spéciaux
@@ -2256,22 +2273,34 @@ if mode_analysis == "Analyse d'un plat":
                 
                 # Ajout des ingrédients sélectionnés
                 if slot1 != "Aucun":
-                    composition_finale = pd.concat([
-                        composition_finale,
-                        additional_clean.loc[additional_clean["ingredient"] == slot1]
-                    ], ignore_index=True)
+                    ingr1 = additional_clean.loc[additional_clean["ingredient"] == slot1].copy()
+                    if not ingr1.empty:
+                        # Ajouter un identifiant unique si l'ingrédient est sélectionné deux fois
+                        if slot1 == slot2:
+                            ingr1["ingredient_id"] = f"{slot1}_1"
+                        composition_finale = pd.concat([composition_finale, ingr1], ignore_index=True)
+                
                 if slot2 != "Aucun":
-                    composition_finale = pd.concat([
-                        composition_finale,
-                        additional_clean.loc[additional_clean["ingredient"] == slot2]
-                    ], ignore_index=True)
-            # Gestion de la Mozzarella
-            # Gestion de la Mozzarella et de la pâte à panini
+                    ingr2 = additional_clean.loc[additional_clean["ingredient"] == slot2].copy()
+                    if not ingr2.empty:
+                        # Ajouter un identifiant unique si l'ingrédient est sélectionné deux fois
+                        if slot1 == slot2:
+                            ingr2["ingredient_id"] = f"{slot2}_2"
+                        composition_finale = pd.concat([composition_finale, ingr2], ignore_index=True)
+            
+            # Vérifier si la mozzarella est sélectionnée dans les ingrédients
+            mozza_count = 0
+            
+            if mode_avance:
+                mozza_count = (slot1 == "Mozzarella") + (slot2 == "Mozzarella")
+            
+            # Pour garantir que la mozzarella n'est pas présente en double quand elle est sélectionnée
             composition_finale = composition_finale[composition_finale["ingredient"].str.lower() != "mozzarella"]
+            
             cost_mozza = 0.234  # Coût final pour 40g de mozzarella
             cost_pate_panini = 0.12  # Coût de la pâte à panini
 
-        # Ajout de la mozzarella
+        # Toujours ajouter une mozzarella de base, même si elle est aussi sélectionnée comme ingrédient
         row_mozza = pd.DataFrame([{
             "ingredient": "Mozzarella",
             "quantite_g": 40,
@@ -2279,6 +2308,19 @@ if mode_analysis == "Analyse d'un plat":
             "Coût (€)": cost_mozza,
             "ingredient_lower": "mozzarella"
         }])
+        composition_finale = pd.concat([composition_finale, row_mozza], ignore_index=True)
+        
+        # Si la mozzarella a été sélectionnée comme ingrédient, on l'ajoute à nouveau (pour la double portion)
+        if mozza_count > 0:
+            for i in range(mozza_count):
+                row_mozza_extra = pd.DataFrame([{
+                    "ingredient": "Mozzarella (extra)",
+                    "quantite_g": 40,
+                    "prix_kg": 5.85,
+                    "Coût (€)": cost_mozza,
+                    "ingredient_lower": "mozzarella extra"
+                }])
+                composition_finale = pd.concat([composition_finale, row_mozza_extra], ignore_index=True)
 
         # Ajout de la pâte à panini
         row_pate = pd.DataFrame([{
@@ -2289,8 +2331,8 @@ if mode_analysis == "Analyse d'un plat":
             "ingredient_lower": "pâte à panini"
         }])
 
-        # Ajouter les deux à la composition finale
-        composition_finale = pd.concat([composition_finale, row_mozza, row_pate], ignore_index=True)
+        # Ajouter la pâte à la composition finale
+        composition_finale = pd.concat([composition_finale, row_pate], ignore_index=True)
 
         # S'assurer que le coût matière inclut tous les éléments
         cout_matiere = composition_finale["Coût (€)"].sum()
@@ -5700,97 +5742,9 @@ elif mode_analysis == "Modifier un plat":
     </style>
     """, unsafe_allow_html=True)
 
-    # === SYSTÈME DE NAVIGATION MINIMALISTE ===
-    # Déterminer l'étape active pour la navigation
-    step_active = 1  # Par défaut : Liste
-    step_progress = 0  # Valeur de progression (0-100%)
-    
-    if st.session_state.edit_view == "liste":
-        step_active = 1
-        step_progress = 0
-    elif st.session_state.edit_view == "creation":
-        step_active = 2
-        step_progress = 50
-    elif st.session_state.edit_view == "edition":
-        step_active = 3
-        step_progress = 100
-    
-    # En-tête de navigation épuré
+    # Navigation par boutons uniquement
     st.markdown("""
-    <div class="nav-header">
-        <div class="nav-title">NAVIGATION</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Indicateurs de progression minimalistes
-    st.markdown(f"""
-    <div class="nav-indicators">
-        <div class="indicator-dot {'' if step_active != 1 else 'active'}"></div>
-        <div class="indicator-dot {'' if step_active != 2 else 'active'}"></div>
-        <div class="indicator-dot {'' if step_active != 3 else 'active'}"></div>
-    </div>
-    <div class="nav-progress-bar">
-        <div class="nav-progress" style="width: {step_progress}%;"></div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Style CSS minimaliste pour la navigation
-    st.markdown("""
-    <style>
-    /* Style pour l'en-tête de navigation */
-    .nav-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.5rem 0;
-        position: relative;
-    }
-    
-    .nav-title {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #64748b;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-    }
-    
-    /* Style pour les indicateurs de progression */
-    .nav-indicators {
-        display: flex;
-        justify-content: center;
-        gap: 0.5rem;
-        margin: 0.5rem 0;
-    }
-    
-    .indicator-dot {
-        width: 0.5rem;
-        height: 0.5rem;
-        border-radius: 50%;
-        background-color: #e2e8f0;
-        transition: all 0.3s ease;
-    }
-    
-    .indicator-dot.active {
-        background-color: #D92332;
-        transform: scale(1.2);
-    }
-    
-    /* Style pour la barre de progression */
-    .nav-progress-bar {
-        height: 2px;
-        background-color: #e2e8f0;
-        border-radius: 1px;
-        margin-bottom: 1.5rem;
-        overflow: hidden;
-    }
-    
-    .nav-progress {
-        height: 100%;
-        background: linear-gradient(to right, #D92332, rgba(217, 35, 50, 0.8));
-        border-radius: 1px;
-        transition: width 0.4s ease;
-    }
-    </style>
+    <div class="nav-buttons">
     """, unsafe_allow_html=True)
     
     # Conteneur pour les boutons de navigation minimalistes
@@ -5818,7 +5772,7 @@ elif mode_analysis == "Modifier un plat":
             st.rerun()
     
     # Créer un plat - Deuxième onglet - Bouton Streamlit fonctionnel
-    with col2:
+    with col2:  
         creation_active = st.session_state.edit_view == "creation"
         
         # Style conditionnel pour le bouton actif
@@ -5835,10 +5789,10 @@ elif mode_analysis == "Modifier un plat":
             st.rerun()
     
     # Messages contextuels améliorés et personnalisés pour guider l'utilisateur
-    if step_active == 1:
+    if st.session_state.edit_view == "liste":
         context_title = "Liste des plats"
         context_message = "Consultez et sélectionnez un plat pour le modifier ou créez une nouvelle recette personnalisée."
-    elif step_active == 2:
+    elif st.session_state.edit_view == "creation":
         context_title = "Création de plat"
         context_message = "Configurez votre nouvelle recette en choisissant une base et en ajustant les ingrédients selon vos besoins."
     else:
@@ -5846,10 +5800,18 @@ elif mode_analysis == "Modifier un plat":
         context_title = f"Édition: {plat_name}"
         context_message = f"Personnalisez les ingrédients et ajustez les coûts pour optimiser la rentabilité de votre recette."
     
-    # Affichage du message contextuel avec un design amélioré
+    # Préparation de l'indicateur d'étape visuel
+    if st.session_state.edit_view == "liste":
+        step_indicator = "1/3"
+    elif st.session_state.edit_view == "creation":
+        step_indicator = "2/3"
+    else:
+        step_indicator = "3/3"
+        
+    # Affichage du message contextuel avec un design amélioré et indicateur d'étape
     st.markdown(f"""
     <div class="context-message">
-        <div class="context-badge">{step_active}/3</div>
+        <div class="step-badge">{step_indicator}</div>
         <div class="context-content">
             <div class="context-title">{context_title}</div>
             <div class="context-text">{context_message}</div>
@@ -5922,6 +5884,23 @@ elif mode_analysis == "Modifier un plat":
         overflow: hidden;
     }
     
+    /* Style pour le badge d'indicateur d'étape */
+    .step-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        background-color: #D92332;
+        color: white;
+        font-weight: 700;
+        font-size: 0.75rem;
+        border-radius: 50%;
+        margin-right: 1rem;
+        flex-shrink: 0;
+        box-shadow: 0 2px 5px rgba(217, 35, 50, 0.2);
+    }
+    
     .context-message:hover {
         box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
         transform: translateY(-1px);
@@ -5938,21 +5917,7 @@ elif mode_analysis == "Modifier un plat":
         pointer-events: none;
     }
     
-    .context-badge {
-        background: #D92332;
-        color: white;
-        font-weight: 600;
-        font-size: 0.7rem;
-        height: 22px;
-        min-width: 22px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        margin-right: 0.9rem;
-        margin-top: 0.1rem;
-        box-shadow: 0 1px 3px rgba(217, 35, 50, 0.3);
-    }
+
     
     .context-content {
         flex: 1;
@@ -5978,8 +5943,7 @@ elif mode_analysis == "Modifier un plat":
         to { opacity: 1; }
     }
     </style>
-    """
-    , unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
     # Modifier un plat - Troisième onglet - Bouton Streamlit fonctionnel
     with col3:
@@ -6136,10 +6100,121 @@ elif mode_analysis == "Modifier un plat":
         </div>
         """, unsafe_allow_html=True)
         
+        # CSS pour la grille responsive des cards
+        st.markdown("""
+        <style>
+        .plat-grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .plat-grid-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+        
+        .empty-state {
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            animation: fadeInUp 0.5s ease-out forwards;
+            grid-column: 1 / -1;
+        }
+        
+        .empty-state-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.8;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.5rem;
+        }
+        
+        .empty-state p {
+            color: #64748b;
+            font-size: 0.9rem;
+            max-width: 300px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        
+        .streamlit-button-container {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: white;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        /* Style pour les boutons Streamlit dans les cards */
+        .streamlit-button-container [data-testid="stHorizontalBlock"] {
+            gap: 0.5rem;
+        }
+        
+        .streamlit-button-container [data-testid="baseButton-primary"],
+        .streamlit-button-container [data-testid="baseButton-secondary"] {
+            border-radius: 6px;
+            font-size: 0.75rem !important;
+            min-height: 2rem !important;
+            height: auto !important;
+            font-weight: 500;
+            padding: 0.4rem 0.5rem !important;
+            transition: all 0.15s ease;
+        }
+        
+        .streamlit-button-container [data-testid="baseButton-primary"] {
+            background-color: #D92332 !important;
+            border-color: #D92332 !important;
+        }
+        
+        .streamlit-button-container [data-testid="baseButton-primary"]:hover {
+            background-color: #C02130 !important;
+            box-shadow: 0 2px 5px rgba(217, 35, 50, 0.2) !important;
+            transform: translateY(-1px);
+        }
+        
+        .streamlit-button-container [data-testid="baseButton-secondary"] {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #64748b !important;
+        }
+        
+        .streamlit-button-container [data-testid="baseButton-secondary"]:hover {
+            background-color: #f1f5f9 !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
+            transform: translateY(-1px);
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Début du conteneur de grille
+        st.markdown('<div class="plat-grid-container">', unsafe_allow_html=True)
+        
         if not st.session_state.brouillons:
             # État vide
             st.markdown("""
-            <div class="empty-state animate-slide-up">
+            <div class="empty-state">
                 <div class="empty-state-icon">🍽️</div>
                 <h3>Aucun plat personnalisé</h3>
                 <p>Commencez par créer votre premier plat personnalisé pour optimiser votre menu</p>
@@ -6148,9 +6223,6 @@ elif mode_analysis == "Modifier un plat":
         else:
             # Liste des plats
             nb_plats = len(st.session_state.brouillons)
-            
-            # Espace pour rendre la liste plus propre
-            st.write("")
             
             for i, plat in enumerate(st.session_state.brouillons):
                 # Calculs pour la carte
@@ -6170,136 +6242,171 @@ elif mode_analysis == "Modifier un plat":
                     status_text = "Excellent"
                     status_icon = "✓"
                     bg_status = "rgba(16, 185, 129, 0.1)"
-                    color_status = "rgba(16, 122, 68, 0.9)"
+                    color_status = "rgb(16, 122, 68)"
+                    badge_bg = "#ecfdf5"
+                    badge_color = "#065f46"
                 elif taux_marge >= seuil_marge_perso - 10:
                     status_class = "good" 
                     status_text = "Correct"
                     status_icon = "⚖️"
                     bg_status = "rgba(245, 158, 11, 0.1)"
-                    color_status = "rgba(146, 94, 6, 0.9)"
+                    color_status = "rgb(146, 94, 6)"
+                    badge_bg = "#fffbeb"
+                    badge_color = "#92400e"
                 else:
                     status_class = "poor"
                     status_text = "À optimiser"
                     status_icon = "⚠️"
                     bg_status = "rgba(244, 63, 94, 0.1)"
-                    color_status = "rgba(159, 18, 57, 0.9)"
+                    color_status = "rgb(159, 18, 57)"
+                    badge_bg = "#fef2f2"
+                    badge_color = "#b91c1c"
 
-                # Carte moderne du plat - Style amélioré selon la charte graphique premium
-                # Création du HTML pour la carte du plat
+                # HTML de la card
                 card_structure = f"""
-                <div class="plat-card">
-                    <div class="card-accent"></div>
-                    <div class="card-header">
-                        <div class="card-title-area">
-                            <h3 class="card-title">{plat['nom']}<span class="marge-badge">{taux_marge:.0f}%</span></h3>
-                            <div class="card-subtitle">Base : {plat['base']}</div>
+                <div class="plat-card animate-fade-in" data-plat-id="{i}">
+                    <div class="card-accent {status_class}"></div>
+                    <div class="card-content">
+                        <div class="card-header">
+                            <div class="card-title-container">
+                                <h3 class="card-title">{plat['nom']}</h3>
+                                <div class="card-subtitle">{plat['base']}</div>
+                            </div>
+                            <div class="card-badges">
+                                <div class="marge-badge" style="background: {badge_bg}; color: {badge_color};">{taux_marge:.0f}%</div>
+                                <div class="status-badge" style="background: {bg_status}; color: {color_status};">{status_icon} {status_text}</div>
+                            </div>
                         </div>
-                        <div class="card-status-badge {status_class}">{status_icon} {status_text}</div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value">{prix_affiche:.2f} €</div>
-                            <div class="metric-label">Prix <span class="badge-small">{price_badge}</span></div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">{cout_matiere:.2f} €</div>
-                            <div class="metric-label">Coût matière</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value status-color">{marge:.2f} €</div>
-                            <div class="metric-label">Marge brute</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">{len(ingr)}</div>
-                            <div class="metric-label">Ingrédients</div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value">{prix_affiche:.2f} €</div>
+                                <div class="metric-label">Prix <span class="price-badge">{price_badge}</span></div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">{cout_matiere:.2f} €</div>
+                                <div class="metric-label">Coût matière</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value" style="color: {color_status};">{marge:.2f} €</div>
+                                <div class="metric-label">Marge brute</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">{len(ingr)}</div>
+                                <div class="metric-label">Ingrédients</div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 """
                 
-                # Définition du CSS pour les cartes de plats
+                # CSS pour les cards
                 card_css = f"""
                 <style>
                 .plat-card {{
-                    background: linear-gradient(to right, rgba(255, 255, 255, 0.99), rgba(250, 250, 252, 1));
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 1.25rem;
-                    margin-bottom: 1.25rem;
-                    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
-                    transition: all 0.25s ease;
-                    position: relative;
+                    background: white;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
                     overflow: hidden;
-                    transform: translateZ(0);
+                    position: relative;
+                    display: flex;
+                    border: 1px solid #e5e7eb;
+                    height: 100%;
+                    animation: fadeIn 0.4s ease-out forwards;
+                    animation-delay: calc({i} * 0.05s);
+                    opacity: 0;
+                }}
+
+                @keyframes fadeIn {{
+                    from {{ opacity: 0; transform: translateY(10px); }}
+                    to {{ opacity: 1; transform: translateY(0); }}
                 }}
                 
                 .card-accent {{
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    bottom: 0;
-                    width: 4px;
-                    background: linear-gradient(to bottom, #D92332, rgba(217, 35, 50, 0.7));
+                    width: 5px;
+                    flex-shrink: 0;
+                }}
+                
+                .card-accent.excellent {{ background: linear-gradient(to bottom, #10b981, #059669); }}
+                .card-accent.good {{ background: linear-gradient(to bottom, #f59e0b, #d97706); }}
+                .card-accent.poor {{ background: linear-gradient(to bottom, #f43f5e, #e11d48); }}
+                
+                .card-content {{
+                    flex: 1;
+                    padding: 1.25rem;
+                    display: flex;
+                    flex-direction: column;
                 }}
                 
                 .card-header {{
                     display: flex;
                     justify-content: space-between;
+                    align-items: flex-start;
                     margin-bottom: 1rem;
-                    padding-left: 0.5rem;
+                }}
+                
+                .card-title-container {{
+                    flex: 1;
                 }}
                 
                 .card-title {{
-                    margin: 0 0 0.4rem 0;
-                    font-size: 1.15rem;
+                    font-size: 1.1rem;
                     font-weight: 600;
                     color: #1e293b;
-                    display: flex;
-                    align-items: center;
-                }}
-                
-                .marge-badge {{
-                    display: inline-flex;
-                    margin-left: 0.5rem;
-                    font-size: 0.65rem;
-                    font-weight: 600;
-                    padding: 0.15rem 0.4rem;
-                    border-radius: 12px;
-                    background: {bg_status};
-                    color: {color_status};
-                    letter-spacing: 0.03em;
+                    margin: 0 0 0.3rem 0;
+                    line-height: 1.3;
                 }}
                 
                 .card-subtitle {{
-                    font-size: 0.75rem;
+                    font-size: 0.8rem;
                     color: #64748b;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
+                    line-height: 1.4;
                 }}
                 
-                .card-status-badge {{
+                .card-badges {{
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                    align-items: flex-end;
+                }}
+                
+                .marge-badge {{
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    padding: 0.15rem 0.4rem;
+                    border-radius: 12px;
+                    letter-spacing: 0.03em;
                     display: inline-flex;
                     align-items: center;
-                    gap: 0.4rem;
-                    padding: 0.35rem 0.6rem;
-                    border-radius: 4px;
-                    font-size: 0.75rem;
+                    justify-content: center;
+                }}
+                
+                .status-badge {{
+                    font-size: 0.7rem;
                     font-weight: 500;
-                    background: {bg_status};
-                    color: {color_status};
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                    white-space: nowrap;
                 }}
                 
                 .card-metrics {{
                     display: grid;
-                    grid-template-columns: repeat(4, 1fr);
-                    gap: 0.75rem;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 1rem;
                     padding: 1rem;
-                    background: linear-gradient(to right, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.9));
-                    border: 1px solid #e9ecef;
-                    border-radius: 6px;
-                    margin-bottom: 1rem;
-                    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+                    background: #f8fafc;
+                    border-radius: 8px;
+                    margin-bottom: 0;
+                    border: 1px solid #f1f5f9;
+                }}
+                
+                @media (min-width: 640px) {{
+                    .card-metrics {{
+                        grid-template-columns: repeat(4, 1fr);
+                        gap: 0.75rem;
+                    }}
                 }}
                 
                 .metric {{
@@ -6307,27 +6414,23 @@ elif mode_analysis == "Modifier un plat":
                 }}
                 
                 .metric-value {{
-                    font-size: 1.1rem;
+                    font-size: 1rem;
                     font-weight: 600;
                     color: #1e293b;
                     margin-bottom: 0.2rem;
                     line-height: 1.2;
                 }}
                 
-                .status-color {{
-                    color: {color_status};
-                }}
-                
                 .metric-label {{
+                    font-size: 0.7rem;
+                    color: #64748b;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 0.7rem;
-                    color: #64748b;
                     gap: 0.3rem;
                 }}
                 
-                .badge-small {{
+                .price-badge {{
                     background: rgba(100, 116, 139, 0.1);
                     color: #64748b;
                     font-size: 0.65rem;
@@ -6335,6 +6438,39 @@ elif mode_analysis == "Modifier un plat":
                     padding: 0.05rem 0.25rem;
                     border-radius: 3px;
                 }}
+                
+                /* Style personnalisé pour les boutons Streamlit */
+                [data-testid="stHorizontalBlock"] {{
+                    gap: 0.5rem;
+                    margin-top: 0.5rem;
+                }}
+                
+                [data-testid="baseButton-primary"] {{
+                    background-color: #D92332 !important;
+                    border-color: #D92332 !important;
+                    font-size: 0.8rem !important;
+                    padding: 0.4rem 0.5rem !important;
+                    transition: all 0.15s ease !important;
+                }}
+                
+                [data-testid="baseButton-primary"]:hover {{
+                    background-color: #C02130 !important;
+                    border-color: #C02130 !important;
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 2px 5px rgba(217, 35, 50, 0.2) !important;
+                }}
+                
+                [data-testid="baseButton-secondary"] {{
+                    font-size: 0.8rem !important;
+                    padding: 0.4rem 0.5rem !important;
+                    border-color: #e2e8f0 !important;
+                    color: #64748b !important;
+                    transition: all 0.15s ease !important;
+                }}
+                
+                [data-testid="baseButton-secondary"]:hover {{
+                    background-color: #f1f5f9 !important;
+                    transform: translateY(-1px) !important;
                 }}
                 </style>
                 """
@@ -6343,7 +6479,10 @@ elif mode_analysis == "Modifier un plat":
                 st.markdown(card_css, unsafe_allow_html=True)
                 st.markdown(card_structure, unsafe_allow_html=True)
 
-                # Boutons d'action Streamlit (maintenant visibles et fonctionnels)
+                # Conteneur pour les boutons d'action Streamlit - visible et intégré à la card
+                st.markdown('<div class="streamlit-button-container">', unsafe_allow_html=True)
+                
+                # Boutons d'action Streamlit
                 col1, col2 = st.columns(2)
                 
                 with col1:
@@ -6360,6 +6499,11 @@ elif mode_analysis == "Modifier un plat":
                         save_drafts(st.session_state.brouillons)
                         st.success(f"✅ '{plat['nom']}' supprimé avec succès")
                         st.rerun()
+                
+                st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Fermeture du conteneur de grille
+        st.markdown('</div>', unsafe_allow_html=True)
 
     elif st.session_state.edit_view == "creation":
         # === VUE CRÉATION D'UN PLAT ===
@@ -6421,51 +6565,148 @@ elif mode_analysis == "Modifier un plat":
         ingr_base = calculer_cout(filtered_ingredients.copy())
         
         # Traitement spécial panini
+        # Traitement spécial pour Panini Pizz
         if plat_selectionne.lower() == "panini pizz":
-            st.info("🥪 **Configuration du panini disponible dans la barre latérale**")
+            # Configuration du panini - Version sobre
+            st.markdown("""
+            <div style="
+                margin-bottom: 1rem;
+                padding: 0.6rem 0.8rem;
+                border: 1px solid #e5e7eb;
+                border-left: 3px solid #D92332;
+                border-radius: 6px;
+                background-color: #fafafa;
+            ">
+                <div style="font-weight: 600; color: #334155; font-size: 0.95rem; margin-bottom: 0.5rem;">
+                    Configuration du panini
+                </div>
+            """, unsafe_allow_html=True)
             
-            # On réutilise les valeurs de la sidebar
-            # Ces variables doivent correspondre aux noms utilisés dans la sidebar
-            base_selection = st.session_state.get('base_panini', 'Crème')
-            mode_avance = st.session_state.get('mode_avance', False)
-            slot1 = st.session_state.get('slot1', 'Aucun')
-            slot2 = st.session_state.get('slot2', 'Aucun')
-            
-            # Composition panini
-            composition = []
-            base_key = "crème" if base_selection == "Crème" else "sauce tomate"
-            base_matches = ingr_base[ingr_base["ingredient"].str.lower() == base_key]
-            if not base_matches.empty:
-                composition.append(base_matches.iloc[0])
-
-            # Si mode personnalisé, utiliser les ingrédients sélectionnés
-            additional = ingr_base[~ingr_base["ingredient"].str.lower().isin(["crème", "sauce tomate"])]
+            # Mode simple vs avancé
+            mode_avance = st.checkbox("Personnaliser les ingrédients", key="mode_avance", 
+                                      help="Activez cette option pour personnaliser votre panini")
             
             if mode_avance:
-                for slot in [slot1, slot2]:
-                    if slot != "Aucun":
-                        slot_matches = additional[additional["ingredient"] == slot]
-                        if not slot_matches.empty:
-                            composition.append(slot_matches.iloc[0])
+                # Mode avancé: choix des composants de manière plus sobre
+                # Choix de la base (crème ou sauce tomate)
+                base_selection = st.radio(
+                    "Base",
+                    ["Crème", "Sauce Tomate"],
+                    horizontal=True,
+                    key="base_panini"
+                )
+                # Convertir la sélection pour correspondre à la base de données
+                base_key = "crème" if base_selection == "Crème" else "sauce tomate"
+                
+                # Ingrédients de base pour un panini
+                composition = []
+                
+                # Ajouter la base sélectionnée
+                base_matches = filtered_ingredients[filtered_ingredients["ingredient"].str.lower() == base_key]
+                if not base_matches.empty:
+                    composition.append(base_matches.iloc[0])
+                
+                # Calcul des ingrédients additionnels
+                additional = filtered_ingredients[~filtered_ingredients["ingredient"].str.lower().isin(["crème", "sauce tomate"])]
+                if not additional.empty and "Coût (€)" not in additional.columns:
+                    additional = calculer_cout(additional)
+                
+                # Préparation des options d'ingrédients
+                if not additional.empty:
+                    additional_clean = additional.drop_duplicates(subset=["ingredient"])
+                    all_ingrs = sorted(list(additional_clean["ingredient"].unique()))
+                    
+                    # Sélection des ingrédients côte à côte
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        slot1 = st.selectbox("Ingrédient #1", ["Aucun"] + all_ingrs, key="slot1")
+                    with col2:
+                        slot2 = st.selectbox("Ingrédient #2", ["Aucun"] + all_ingrs, key="slot2")
+                    
+                    # Ingrédients supplémentaires selon sélection
+                    for i, slot in enumerate([slot1, slot2]):
+                        if slot != "Aucun":
+                            slot_matches = additional[additional["ingredient"] == slot]
+                            if not slot_matches.empty:
+                                # Créer une copie de la série pour éviter les références partagées
+                                ingr_row = slot_matches.iloc[0].copy()
+                                # Ajouter un suffixe unique pour différencier les ingrédients identiques
+                                if slot in [ing.get("ingredient") for ing in composition]:
+                                    ingr_row["ingredient_id"] = f"{slot}_{i+1}"
+                                composition.append(ingr_row)
+                else:
+                    # En cas d'absence d'ingrédients additionnels
+                    st.warning("Aucun ingrédient supplémentaire disponible pour ce panini")
+                    # Valeurs par défaut pour la moyenne
+                    avg_qty = 30
+                    avg_price = 8.0
+                    avg_cost = 0.24
+                    
+                    # Ajouter deux ingrédients "moyens" avec des valeurs calculées correctement
+                    for _ in range(2):
+                        composition.append(pd.Series({
+                            "ingredient": "Moyenne suppl",
+                            "quantite_g": avg_qty,
+                            "prix_kg": avg_price,
+                            "Coût (€)": avg_cost
+                        }))
             else:
-                # Mode simple: utiliser les ingrédients moyens
-                avg_add = additional["Coût (€)"].mean() if not additional.empty else 0.0
-                # Ajouter deux ingrédients "moyens"
+                # Mode simple: configuration automatique - message plus sobre
+                st.caption("Configuration standard avec sauce tomate et ingrédients moyens")
+                
+                # Ingrédients de base pour un panini
+                composition = []
+                
+                # Base par défaut (sauce tomate)
+                base_key = "sauce tomate"
+                base_matches = filtered_ingredients[filtered_ingredients["ingredient"].str.lower() == base_key]
+                if not base_matches.empty:
+                    composition.append(base_matches.iloc[0])
+                
+                # Calcul des ingrédients additionnels
+                additional = filtered_ingredients[~filtered_ingredients["ingredient"].str.lower().isin(["crème", "sauce tomate"])]
+                # S'assurer que la colonne "Coût (€)" existe dans additional
+                if not additional.empty and "Coût (€)" not in additional.columns:
+                    additional = calculer_cout(additional)
+                
+                # Calcul des moyennes pour les ingrédients supplémentaires
+                if not additional.empty:
+                    avg_qty = additional["quantite_g"].mean()
+                    avg_price = additional["prix_kg"].mean() 
+                    avg_cost = additional["Coût (€)"].mean()
+                else:
+                    avg_qty = 30  # Valeur par défaut raisonnable
+                    avg_price = 8.0  # Valeur par défaut raisonnable
+                    avg_cost = 0.24  # Valeur par défaut raisonnable (environ 30g à 8€/kg)
+                
+                # Ajouter deux ingrédients "moyens" avec des valeurs calculées correctement
                 for _ in range(2):
                     composition.append(pd.Series({
                         "ingredient": "Moyenne suppl",
-                        "quantite_g": 0,
-                        "prix_kg": 0,
-                        "Coût (€)": avg_add
+                        "quantite_g": avg_qty,
+                        "prix_kg": avg_price,
+                        "Coût (€)": avg_cost
                     }))
-
-            # Ajout mozzarella et pâte
+            
+            # Fermer le div principal
+            st.markdown("""
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Ajout mozzarella et pâte (commun aux deux modes)
             composition.extend([
                 pd.Series({"ingredient": "Mozzarella", "quantite_g": 40, "prix_kg": 5.85, "Coût (€)": 0.234}),
                 pd.Series({"ingredient": "Pâte à panini", "quantite_g": 0, "prix_kg": 0, "Coût (€)": 0.12})
             ])
             
             ingr_base = pd.DataFrame(composition)
+            
+            # Gestion des ingrédients identiques: conserver l'ingrédient original pour l'affichage
+            if 'ingredient_id' in ingr_base.columns:
+                ingr_base['ingredient_original'] = ingr_base['ingredient']
+                ingr_base.loc[ingr_base['ingredient_id'].notna(), 'ingredient'] = ingr_base.loc[ingr_base['ingredient_id'].notna(), 'ingredient_id']
+            
+            # S'assurer que le DataFrame a bien la colonne "Coût (€)"
             ingr_base = calculer_cout(ingr_base)
 
         # Ajout pâte pour pizzas
@@ -6544,8 +6785,18 @@ elif mode_analysis == "Modifier un plat":
 
         # Composition détaillée
         with st.expander("📋 Voir la composition détaillée", expanded=False):
+            # Préparer le DataFrame pour l'affichage
+            display_df = ingr_base.copy()
+            
+            # Si nous avons des noms d'ingrédients modifiés pour la gestion des doublons,
+            # restaurer le nom original pour l'affichage tout en gardant la valeur unique pour les calculs
+            if 'ingredient_original' in display_df.columns:
+                display_df['ingredient'] = display_df['ingredient_original']
+                display_df = display_df.drop(columns=['ingredient_original', 'ingredient_id'], errors='ignore')
+            
+            # Afficher le DataFrame avec les colonnes voulues
             st.dataframe(
-                ingr_base[["ingredient", "quantite_g", "prix_kg", "Coût (€)"]],
+                display_df[["ingredient", "quantite_g", "prix_kg", "Coût (€)"]],
                 use_container_width=True,
                 hide_index=True
             )
@@ -6628,85 +6879,46 @@ elif mode_analysis == "Modifier un plat":
             status_icon = "🔴"
             status_color = "#ef4444"
 
-        # Interface d'édition moderne avec un design premium
-        # Préparation sécurisée des variables
-        import html
-        try:
-            nom_escape = html.escape(str(plat_data.get('nom', 'Plat sans nom')))
-            base_escape = html.escape(str(plat_data.get('base', 'Base inconnue')))
-            nb_ingredients = len(plat_data.get("composition", []))
-            
-            # Affichage de l'en-tête du plat ultra-simplifié et minimaliste
-            st.markdown(f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
-                <div>
-                    <div style="font-size: 1.3rem; font-weight: 500; color: #334155; letter-spacing: -0.01em;">{nom_escape}</div>
-                    <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">Base : {base_escape}</div>
-                </div>
-                <div style="
-                    color: {status_color}; 
-                    font-weight: 600;
-                    font-size: 0.9rem;
-                ">
-                    {taux_marge:.1f}% de marge
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Affichage des métriques compactes
-            st.markdown(f"""
-            <div style="
-                display: flex; 
-                gap: 1rem; 
-                margin-bottom: 1.5rem; 
-                background: #f8fafc; 
-                padding: 0.75rem; 
-                border-radius: 6px;
-                border: 1px solid #e2e8f0;
-            ">
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-weight: 600; font-size: 1.1rem;">{prix_affiche:.2f} €</div>
-                    <div style="font-size: 0.8rem; color: #64748b;">Prix {'HT' if affichage_ht_edit else 'TTC'}</div>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-weight: 600; font-size: 1.1rem;">{cout_matiere:.2f} €</div>
-                    <div style="font-size: 0.8rem; color: #64748b;">Coût matière</div>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-weight: 600; font-size: 1.1rem; color: {status_color};">{marge_brute:.2f} €</div>
-                    <div style="font-size: 0.8rem; color: #64748b;">Marge</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        except Exception as e:
-            st.error(f"Erreur d'affichage des données du plat : {e}")
-            st.info("Veuillez rafraîchir la page ou retourner à la liste des plats")
-        
+        # Interface d'édition simplifiée
+        # Style pour l'interface d'édition sans le titre principal
         st.markdown("""
         <style>
-        /* Style pour les étiquettes de champ */
-        [data-testid="stTextInput"] label, [data-testid="stNumberInput"] label {
-            font-weight: 600 !important;
-            color: #334155 !important;
-            font-size: 0.95rem !important;
-            margin-bottom: 0.5rem !important;
-        }
-        
-        /* Style pour les champs numériques */
-        [data-testid="stNumberInput"] > div > div > input {
-            border-radius: 8px !important;
-            border: 1px solid #e2e8f0 !important;
-            padding: 0.75rem 1rem !important;
-            font-size: 0.95rem !important;
-            transition: all 0.3s ease !important;
-        }
-        
-        [data-testid="stNumberInput"] > div > div > input:focus {
-            border-color: #D92332 !important;
-            box-shadow: 0 0 0 3px rgba(217, 35, 50, 0.1) !important;
-            transform: translateY(-1px);
-        }
+            /* Style pour les étiquettes de champ */
+            [data-testid="stTextInput"] label, [data-testid="stNumberInput"] label {
+                font-weight: 600 !important;
+                color: #334155 !important;
+                font-size: 0.95rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            /* Style pour les champs numériques */
+            [data-testid="stNumberInput"] > div > div > input {
+                border-radius: 5px !important;
+                border: 1px solid #e2e8f0 !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 0.95rem !important;
+                transition: all 0.2s ease !important;
+            }
+            
+            [data-testid="stNumberInput"] > div > div > input:focus {
+                border-color: #D92332 !important;
+                box-shadow: 0 0 0 3px rgba(217, 35, 50, 0.1) !important;
+                transform: translateY(-1px);
+            }
+            
+            /* Style pour les boutons primaires */
+            button[data-testid="baseButton-primary"] {
+                background-color: #D92332 !important;
+                border-color: #D92332 !important;
+                transition: all 0.2s ease !important;
+            }
+            
+            button[data-testid="baseButton-primary"]:hover {
+                background-color: #C02130 !important;
+                border-color: #C02130 !important;
+                transform: translateY(-1px);
+                box-shadow: 0 2px 5px rgba(217, 35, 50, 0.2) !important;
+            }
         </style>
         """, unsafe_allow_html=True)
         st.markdown("""
@@ -6738,54 +6950,6 @@ elif mode_analysis == "Modifier un plat":
         </style>
         """, unsafe_allow_html=True)
         
-        # En-tête modernisé avec la charte graphique
-        st.markdown("""
-        <div class="form-modern animate-slide-up" style="padding: 1rem; margin-bottom: 1rem;">
-            <div class="form-section-modern" style="margin-bottom: 0.75rem;">
-                <h3>
-                    <div class="form-section-icon">
-                        <span style="font-size: 1.1rem;">✏️</span>
-                    </div>
-                    Édition du plat
-                </h3>
-                <div style="font-size: 0.8rem; color: #64748b; display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
-                    <div style="width: 8px; height: 8px; background-color: #f59e0b; border-radius: 50%;"></div>
-                    Pensez à sauvegarder vos modifications
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Affichage du message de succès temporaire (5 secondes)
-        if "save_success_time" in st.session_state:
-            current_time = time.time()
-            if current_time - st.session_state.save_success_time < 5:  # Afficher pendant 5 secondes
-                st.markdown("""
-                <div style="
-                    background-color: rgba(34, 197, 94, 0.1);
-                    border: 1px solid rgba(34, 197, 94, 0.3);
-                    border-radius: 6px;
-                    padding: 0.8rem 1rem;
-                    margin-bottom: 1rem;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.7rem;
-                    animation: fadeIn 0.3s ease-in-out;
-                ">
-                    <div style="color: #22c55e; font-size: 1.2rem;">✅</div>
-                    <div style="color: #166534; font-weight: 500; font-size: 0.9rem;">Plat sauvegardé avec succès !</div>
-                </div>
-                
-                <style>
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-5px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                </style>
-                """, unsafe_allow_html=True)
-            else:
-                # Effacer le message après 5 secondes
-                del st.session_state.save_success_time
         
         # Champs principaux côte à côte
         col1, col2 = st.columns(2)
@@ -6810,586 +6974,500 @@ elif mode_analysis == "Modifier un plat":
                 plat_data["prix_affiche"] = prix_affiche
                 st.session_state.plat_actif = plat_data
 
-        # Initialisation des états de session pour le suivi des onglets si nécessaire
-        if 'active_tab' not in st.session_state:
-            st.session_state.active_tab = "tab1"
-        if 'last_active_tab' not in st.session_state:
-            st.session_state.last_active_tab = "tab1"
+        # Interface épurée - mise en page à deux colonnes
+        
+        # Onglets pour la navigation entre les différentes fonctionnalités
+        edit_tab, optim_tab = st.tabs(["📋 Édition des ingrédients", "⚡ Optimisation"])
+        
+        # Tab 1: Édition des ingrédients
+        with edit_tab:            # Réorganisation : deux colonnes principales (gauche: ingrédients, droite: métriques)
+            # Répartition optimisée pour le tableau à gauche et les métriques à droite
+            tab_col1, tab_col2 = st.columns([2, 1])
             
-        # Onglets d'édition avec priorité sur composition et optimisation
-        # Interface simplifiée avec seulement deux onglets principaux
-        tab1, tab2 = st.tabs(["📋 Composition et Ingrédients", "⚡ Optimisation"])
-        
-        # Styles des onglets optimisés pour une meilleure ergonomie et visibilité
-        st.markdown("""
-        <style>
-        /* Style pour les onglets simplifiés et mis en évidence */
-        .stTabs {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            padding: 2px;
-            margin-bottom: 1.5rem;
-            overflow: visible; /* Permet aux éléments enfants de déborder */
-        }
-        
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 2px;
-            background-color: #f8f9fa;
-            border-radius: 8px 8px 0 0;
-            padding: 0.5rem 0.5rem 0 0.5rem;
-            border-bottom: none !important; /* Suppression de bordure supplémentaire */
-        }
-        
-        .stTabs [data-baseweb="tab"] {
-            height: 55px; /* Hauteur augmentée pour une meilleure visibilité */
-            background-color: white;
-            border: 1px solid #e9ecef;
-            border-bottom: none; /* Suppression de la bordure du bas */
-            border-radius: 8px 8px 0 0 !important;
-            font-weight: 600;
-            color: #64748b;
-            transition: all 0.2s ease-in-out;
-            font-size: 1.05rem; /* Taille de police augmentée */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .stTabs [aria-selected="true"] {
-            background-color: white !important;
-            border-bottom: none !important; /* Suppression de la bordure inférieure */
-            color: #D92332 !important;
-            font-weight: 700;
-            position: relative;
-            transform: translateY(-3px); /* Effet de surélévation plus prononcé */
-            box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
-        }
-        
-        .stTabs [aria-selected="true"]::after {
-            content: "";
-            position: absolute;
-            bottom: -1px; /* Positionné exactement en bas */
-            left: 0;
-            width: 100%;
-            height: 4px; /* Épaisseur augmentée */
-            background: linear-gradient(90deg, rgba(217, 35, 50, 0.7), #D92332, rgba(217, 35, 50, 0.7));
-            border-radius: 3px 3px 0 0;
-            z-index: 10; /* S'assurer qu'il est au-dessus des autres éléments */
-        }
-        
-        .stTabs [role="tabpanel"] {
-            padding: 1.5rem; /* Padding augmenté pour plus d'espace */
-            border: 1px solid #e9ecef;
-            border-top: 1px solid #e9ecef; /* Gardez la bordure supérieure pour éviter l'espace */
-            border-radius: 0 0 8px 8px;
-            position: relative;
-            top: -1px; /* Ajustement pour éviter l'espace entre l'onglet et le panneau */
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-        with tab1:
-            # Section ingrédients avec la charte graphique
-            st.markdown("""
-            <div class="form-section-modern" style="margin-bottom: 0.75rem;">
-                <h3>
-                    <div class="form-section-icon">
-                        <span style="font-size: 1.1rem;">🧾</span>
+            with tab_col1:
+                # Style moderne et compact pour le tableau des ingrédients - harmonisé avec les métriques
+                st.markdown("""
+                <style>
+                    .ingredient-table {
+                        background-color: white;
+                        border-radius: 5px;
+                        border: 1px solid #e2e8f0;
+                        margin-bottom: 0.7rem;
+                        padding: 0.5rem 0.5rem 0.4rem 0.5rem;
+                        font-size: 0.85rem;
+                        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+                    }
+                    .ingredient-header {
+                        display: flex;
+                        flex-direction: row;
+                        align-items: center;
+                        background-color: #f8fafc;
+                        padding: 0.4rem 0.5rem;
+                        border-radius: 4px;
+                        margin-bottom: 0.4rem;
+                        font-weight: 600;
+                        font-size: 0.75rem;
+                        color: #1e293b;
+                        border-bottom: 1px solid #f1f5f9;
+                    }
+                    .ingredient-header::before {
+                        content: "";
+                        width: 3px;
+                        height: 16px;
+                        background-color: #D92332;
+                        border-radius: 1px;
+                        margin-right: 0.4rem;
+                    }
+                    .ingredient-row {
+                        display: flex;
+                        flex-direction: row;
+                        align-items: center;
+                        padding: 0.4rem 0.5rem;
+                        border-bottom: 1px solid #f1f5f9;
+                        margin-bottom: 0.15rem;
+                        font-size: 0.8rem;
+                        border-radius: 3px;
+                        transition: background-color 0.15s ease;
+                    }
+                    .ingredient-row:hover {
+                        background-color: #f8fafc;
+                    }
+                    .ingredient-row:last-child {
+                        border-bottom: none;
+                        margin-bottom: 0;
+                    }
+                    .ingredient-name {
+                        flex: 1.5;
+                        font-weight: 500;
+                        font-size: 0.85rem;
+                        color: #334155;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        padding-left: 0.1rem;
+                    }
+                    .ingredient-quantity {
+                        flex: 0.6;
+                        text-align: center;
+                    }
+                    .ingredient-cost {
+                        flex: 0.6;
+                        text-align: right;
+                        font-weight: 500;
+                        font-size: 0.85rem;
+                        padding-right: 0.1rem;
+                    }
+                    .ingredient-action {
+                        flex: 0.4;
+                        text-align: center;
+                    }
+                    .ingredient-header-item {
+                        padding: 0 0.1rem;
+                    }
+                    /* Style compact pour les champs numériques */
+                    [data-testid="stNumberInput"] > div {
+                        width: 100% !important;
+                    }
+                    [data-testid="stNumberInput"] > div > div > input {
+                        padding: 0.3rem 0.4rem !important;
+                        font-size: 0.8rem !important;
+                        border: 1px solid #e2e8f0 !important;
+                        border-radius: 4px !important;
+                        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+                        width: 100% !important;
+                        text-align: center !important;
+                    }
+                    [data-testid="stNumberInput"] > div > div > input:focus {
+                        border-color: #D92332 !important;
+                        box-shadow: 0 0 0 1px rgba(217, 35, 50, 0.1) !important;
+                    }
+                    /* Réduire l'espace autour des boutons */
+                    button[data-testid="baseButton-secondary"] {
+                        padding: 0.2rem 0.3rem !important;
+                        min-height: unset !important;
+                        height: auto !important;
+                        font-size: 0.8rem !important;
+                        border-radius: 4px !important;
+                        transition: background-color 0.15s ease, transform 0.1s ease;
+                        width: 100% !important;
+                    }
+                    button[data-testid="baseButton-secondary"]:hover {
+                        transform: translateY(-1px);
+                    }
+                    /* Réduire l'espace autour des selectbox */
+                    [data-testid="stSelectbox"] {
+                        min-height: unset !important;
+                        line-height: 1.2 !important;
+                    }
+                    [data-testid="stSelectbox"] > div {
+                        line-height: 1.2 !important;
+                    }
+                </style>
+                <div class="ingredient-table">
+                    <div class="ingredient-header">
+                        <div class="ingredient-header-item" style="flex: 1.5;">Ingrédients</div>
+                        <div class="ingredient-header-item" style="flex: 0.6; text-align: center;">Qté (g)</div>
+                        <div class="ingredient-header-item" style="flex: 0.6; text-align: right;">Coût</div>
+                        <div class="ingredient-header-item" style="flex: 0.4; text-align: center;">Action</div>
                     </div>
-                    Composition du plat
-                </h3>
-                <div style="font-size: 0.8rem; color: #64748b;">
-                    Modifiez les quantités ou supprimez des ingrédients
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Tableau moderne des ingrédients optimisé et focalisé
-            st.markdown("""
-            <div class="ingredients-table-premium">
-                <div class="ingredients-header">
-                    <div>Ingrédient</div>
-                    <div>Qté (g)</div>
-                    <div>Coût</div>
-                    <div></div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # Styles optimisés pour les ingrédients (plus compact et plus clair)
-            st.markdown("""
-            <style>
-            /* Style optimisé pour le tableau d'ingrédients - version plus compacte */
-            .ingredients-table-premium {
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-                margin-bottom: 1rem;
-                background: white;
-                max-height: 350px;
-                overflow-y: auto;
-            }
-            
-            .ingredients-header {
-                display: grid;
-                grid-template-columns: 2fr 0.8fr 0.8fr 0.6fr;
-                gap: 4px;
-                background: #f1f5f9;
-                padding: 8px 10px;
-                border-bottom: 1px solid #e2e8f0;
-                font-weight: 600;
-                color: #334155;
-                font-size: 0.85rem;
-                position: sticky;
-                top: 0;
-                z-index: 10;
-            }
-            
-            /* Style des lignes d'ingrédients plus compactes */
-            .ingredient-row-modern {
-                display: grid;
-                grid-template-columns: 2fr 0.8fr 0.8fr 0.6fr;
-                gap: 4px;
-                padding: 6px 10px;
-                border-bottom: 1px solid #f1f5f9;
-                align-items: center;
-                transition: background-color 0.15s ease;
-            }
-            
-            .ingredient-row-modern:hover {
-                background-color: #f8fafc;
-            }
-            
-            .ingredient-row-modern:last-child {
-                border-bottom: none;
-            }
-            
-            .ingredient-name-modern {
-                font-weight: 500;
-                color: #1e293b;
-                padding: 2px 0;
-                font-size: 0.9rem;
-            }
-            
-            /* Inputs optimisés pour être plus compacts */
-            input[type="number"] {
-                border-radius: 4px !important;
-                border: 1px solid #e2e8f0 !important;
-                padding: 4px 8px !important;
-                font-size: 0.85rem !important;
-                background-color: #fff !important;
-                transition: all 0.2s ease;
-                height: 32px !important;
-            }
-            
-            input[type="number"]:focus {
-                border-color: #D92332 !important;
-                box-shadow: 0 0 0 2px rgba(217, 35, 50, 0.1) !important;
-            }
-            
-            /* Style pour les boutons d'action des ingrédients - plus petits */
-            button[data-testid="baseButton-secondary"] {
-                border-radius: 4px;
-                padding: 0px 8px !important;
-                min-height: 28px !important;
-                height: 28px !important;
-            }
-            
-            /* Réduire la taille des boutons et leurs paddings */
-            .stButton>button {
-                padding: 2px 8px !important;
-                font-size: 0.85rem !important;
-            }
-            
-            /* Boutons primaires pour harmonisation */
-            button[data-testid="baseButton-primary"] {
-                background-color: #D92332 !important;
-                border-color: #D92332 !important;
-                color: white !important;
-                font-weight: 600 !important;
-                transition: all 0.2s ease !important;
-            }
-            
-            button[data-testid="baseButton-primary"]:hover {
-                background-color: #c01e2b !important;
-                border-color: #c01e2b !important;
-                box-shadow: 0 4px 6px rgba(217, 35, 50, 0.2) !important;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-
-            # Variables pour stocker les modifications
-            ingredients_to_delete = []
-            quantity_updates = {}
-
-            for i, (idx, row) in enumerate(ingr_modifie.iterrows()):
-                # Ajout de div pour chaque ligne pour maintenir la structure en grille
-                st.markdown(f"""
-                <div class="ingredient-row-modern">
-                    <div class="ingredient-name-modern">{row["ingredient"]}</div>
-                </div>
                 """, unsafe_allow_html=True)
                 
-                # Colonnes plus compactes
-                col1, col2, col3, col4 = st.columns([2, 0.8, 0.8, 0.6])
-                
-                new_qty = col2.number_input(
-                    "",
-                    min_value=0.0,
-                    value=float(row["quantite_g"]),
-                    step=5.0,
-                    key=f"qty_edit_{i}_{idx}",
-                    label_visibility="collapsed"
-                )
-                
-                col3.markdown(f'<div style="font-weight: 500; color: #334155; font-size: 0.85rem;">{row["Coût (€)"]:.2f} €</div>', unsafe_allow_html=True)
-                
-                if col4.button("🗑️", key=f"del_edit_{i}_{idx}", help="Supprimer cet ingrédient", use_container_width=True):
-                    ingredients_to_delete.append(idx)
-                
-                # Stocker les mises à jour de quantité
-                if new_qty != row["quantite_g"]:
-                    quantity_updates[idx] = new_qty
-                    # Mise à jour immédiate pour affichage
-                    ingr_modifie.loc[idx, "quantite_g"] = new_qty
-                    ingr_modifie.loc[idx, "Coût (€)"] = (new_qty * ingr_modifie.loc[idx, "prix_kg"]) / 1000
+                # Variables pour stocker les modifications
+                ingredients_to_delete = []
+                quantity_updates = {}
 
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            # Appliquer les modifications
-            if ingredients_to_delete or quantity_updates:
-                # Supprimer les ingrédients
-                for idx in ingredients_to_delete:
-                    ingr_modifie = ingr_modifie.drop(idx)
-                
-                # Mettre à jour les quantités
-                for idx, new_qty in quantity_updates.items():
-                    if idx in ingr_modifie.index:
+                for i, (idx, row) in enumerate(ingr_modifie.iterrows()):
+                    # Afficher une ligne d'ingrédient avec style amélioré
+                    ing_name = row['ingredient']
+                    cout = row['Coût (€)']
+                    cout_color = "#22c55e" if cout < 1.0 else "#f59e0b" if cout < 2.0 else "#ef4444"
+                    
+                    # Configuration des colonnes pour le tableau
+                    ing_col, qty_col, cost_col, action_col = st.columns([1.5, 0.6, 0.6, 0.4])
+                    
+                    with ing_col:
+                        st.markdown(f"""<div class="ingredient-name">{ing_name}</div>""", unsafe_allow_html=True)
+                    
+                    with qty_col:
+                        new_qty = st.number_input(
+                            "",
+                            min_value=0.0,
+                            value=float(row["quantite_g"]),
+                            step=5.0,
+                            key=f"qty_edit_{i}_{idx}",
+                            label_visibility="collapsed",
+                            format="%.0f"
+                        )
+                    
+                    with cost_col:
+                        # Affichage du coût avec style harmonisé et élégant
+                        st.markdown(f"""<div class="ingredient-cost" style="color: {cout_color};">{cout:.2f}€</div>""", unsafe_allow_html=True)
+                    
+                    with action_col:
+                        # Bouton supprimer avec style amélioré et élégant
+                        if st.button("🗑️", key=f"del_edit_{i}_{idx}", help="Supprimer cet ingrédient", use_container_width=True):
+                            ingredients_to_delete.append(idx)
+                    
+                    # Stocker les mises à jour de quantité
+                    if new_qty != row["quantite_g"]:
+                        quantity_updates[idx] = new_qty
+                        # Mise à jour immédiate pour affichage
                         ingr_modifie.loc[idx, "quantite_g"] = new_qty
                         ingr_modifie.loc[idx, "Coût (€)"] = (new_qty * ingr_modifie.loc[idx, "prix_kg"]) / 1000
-                
-                # Mettre à jour les modifications dans la session state (sans sauvegarde automatique)
-                st.session_state.plat_actif["composition"] = ingr_modifie.to_dict(orient="records")
-                if ingredients_to_delete:
-                    st.success(f"✅ {len(ingredients_to_delete)} ingrédient(s) supprimé(s)", icon="✅")
-                if quantity_updates:
-                    st.success(f"✅ {len(quantity_updates)} quantité(s) mise(s) à jour", icon="✅")
-                st.rerun()
 
-            # Ajout d'ingrédient avec style harmonisé
-            st.markdown("""
-            <div class="form-section-modern" style="
-                padding: 0.75rem;
-                background-color: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                margin: 1rem 0 0.5rem 0;
-            ">
-                <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.5rem 0; font-size: 1rem; border-bottom: none; padding-bottom: 0;">
-                    <div class="form-section-icon" style="width: 24px; height: 24px;">
-                        <span style="font-size: 0.9rem;">➕</span>
-                    </div>
-                    Ajouter un nouvel ingrédient
-                </h3>
-            """, unsafe_allow_html=True)
-            
-            col1, col2, col3 = st.columns([1.5, 0.8, 0.8])
-            
-            ingr_dispo = sorted([ing for ing in ingredients["ingredient"].unique() if ing not in ingr_modifie["ingredient"].values])
-            
-            if ingr_dispo:
-                nouvel_ing = col1.selectbox("Ingrédient", ingr_dispo, key="new_ing_tab1", 
-                                           label_visibility="collapsed")
-                qty_nouvelle = col2.number_input("Quantité (g)", min_value=5.0, value=50.0, step=5.0, 
-                                                key="new_qty_tab1", label_visibility="collapsed")
-                
-                if col3.button("Ajouter", key="add_ing_tab1", type="primary", use_container_width=True):
-                    data_ing = ingredients[ingredients["ingredient"] == nouvel_ing]
-                    prix_kg = data_ing.iloc[0]["prix_kg"] if not data_ing.empty else 0.0
+                # Appliquer les modifications
+                if ingredients_to_delete or quantity_updates:
+                    # Supprimer les ingrédients
+                    for idx in ingredients_to_delete:
+                        ingr_modifie = ingr_modifie.drop(idx)
                     
-                    new_row = pd.DataFrame([{
-                        "ingredient": nouvel_ing,
-                        "quantite_g": qty_nouvelle,
-                        "prix_kg": prix_kg,
-                        "Coût (€)": (qty_nouvelle * prix_kg) / 1000
-                    }])
+                    # Mettre à jour les quantités
+                    for idx, new_qty in quantity_updates.items():
+                        if idx in ingr_modifie.index:
+                            ingr_modifie.loc[idx, "quantite_g"] = new_qty
+                            ingr_modifie.loc[idx, "Coût (€)"] = (new_qty * ingr_modifie.loc[idx, "prix_kg"]) / 1000
                     
-                    ingr_modifie = pd.concat([ingr_modifie, new_row], ignore_index=True)
+                    # Mettre à jour les modifications dans la session state (sans sauvegarde automatique)
                     st.session_state.plat_actif["composition"] = ingr_modifie.to_dict(orient="records")
-                    st.success(f"✅ {nouvel_ing} ajouté avec succès")
+                    if ingredients_to_delete:
+                        st.success(f"✅ {len(ingredients_to_delete)} ingrédient(s) supprimé(s)", icon="✅")
+                    if quantity_updates:
+                        st.success(f"✅ {len(quantity_updates)} quantité(s) mise(s) à jour", icon="✅")
                     st.rerun()
-            else:
-                # Mise à jour des métriques en temps réel pour refléter les modifications
+                
+                # Fermeture du div pour le tableau
+                st.markdown("</div>", unsafe_allow_html=True)
+
+                # Ajout d'ingrédient avec style harmonisé avec le tableau et les métriques
+                st.markdown("""
+                <div class="form-section-modern" style="
+                    padding: 0.5rem 0.6rem;
+                    background-color: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 5px;
+                    margin: 0.7rem 0 0.5rem 0;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+                ">
+                    <div style="
+                        display: flex; 
+                        align-items: center; 
+                        margin: 0 0 0.5rem 0; 
+                        padding-bottom: 0.4rem;
+                        border-bottom: 1px solid #f1f5f9;
+                    ">
+                        <div style="
+                            width: 3px; 
+                            height: 16px; 
+                            background-color: #D92332; 
+                            border-radius: 1px; 
+                            margin-right: 0.4rem;
+                        "></div>
+                        <h3 style="
+                            margin: 0; 
+                            font-size: 0.85rem; 
+                            font-weight: 600; 
+                            color: #1e293b;
+                        ">
+                            Ajouter un ingrédient
+                        </h3>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                col1, col2, col3 = st.columns([1.5, 0.6, 0.8])
+                
+                ingr_dispo = sorted([ing for ing in ingredients["ingredient"].unique() if ing not in ingr_modifie["ingredient"].values])
+                
+                if ingr_dispo:
+                    nouvel_ing = col1.selectbox("Ingrédient", ingr_dispo, key="new_ing", 
+                                               label_visibility="collapsed")
+                    qty_nouvelle = col2.number_input("Quantité (g)", min_value=5.0, value=50.0, step=5.0, 
+                                                    key="new_qty", label_visibility="collapsed")
+                    
+                    if col3.button("Ajouter", key="add_ing", type="primary", use_container_width=True):
+                        data_ing = ingredients[ingredients["ingredient"] == nouvel_ing]
+                        prix_kg = data_ing.iloc[0]["prix_kg"] if not data_ing.empty else 0.0
+                        
+                        new_row = pd.DataFrame([{
+                            "ingredient": nouvel_ing,
+                            "quantite_g": qty_nouvelle,
+                            "prix_kg": prix_kg,
+                            "Coût (€)": (qty_nouvelle * prix_kg) / 1000
+                        }])
+                        
+                        ingr_modifie = pd.concat([ingr_modifie, new_row], ignore_index=True)
+                        st.session_state.plat_actif["composition"] = ingr_modifie.to_dict(orient="records")
+                        st.success(f"✅ Ingrédient ajouté avec succès", icon="✅")
+                        st.rerun()
+                else:
+                    st.info("Tous les ingrédients disponibles sont déjà ajoutés à ce plat.")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Fonction pour afficher les métriques en temps réel
+            def afficher_metriques():
                 cout_actuel = ingr_modifie["Coût (€)"].sum()
                 marge_actuelle = prix_affiche - cout_actuel
                 taux_marge_actuel = (marge_actuelle / prix_affiche * 100) if prix_affiche > 0 else 0
+                margin_color = "#22c55e" if taux_marge_actuel >= seuil_marge_perso else "#f59e0b" if taux_marge_actuel >= seuil_marge_perso - 10 else "#ef4444"
                 
-                # Affichage des métriques mises à jour avec la charte graphique
+                # En-tête des métriques - design sobre et minimaliste
                 st.markdown("""
-                <div class="preview-metrics-modern">
-                """, unsafe_allow_html=True)
-                
-                metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
-                
-                with metrics_col1:
-                    st.markdown(f"""
-                    <div class="preview-metric">
-                        <div class="preview-metric-label">Coût total</div>
-                        <div class="preview-metric-value">{cout_actuel:.2f} €</div>
+                <div style="background-color: white; border-radius: 6px; border: 1px solid #e2e8f0; padding: 0.6rem; margin-bottom: 0.7rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                    <div style="display: flex; align-items: center; margin-bottom: 0.3rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.3rem;">
+                        <div style="width: 3px; height: 16px; background-color: #D92332; border-radius: 1px; margin-right: 0.4rem;"></div>
+                        <h3 style="margin: 0; font-size: 0.85rem; font-weight: 600; color: #1e293b;">
+                            Métriques
+                        </h3>
                     </div>
-                    """, unsafe_allow_html=True)
-                
-                with metrics_col2:
-                    st.markdown(f"""
-                    <div class="preview-metric">
-                        <div class="preview-metric-label">Marge</div>
-                        <div class="preview-metric-value">{marge_actuelle:.2f} €</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with metrics_col3:
-                    st.markdown(f"""
-                    <div class="preview-metric">
-                        <div class="preview-metric-label">Taux de marge</div>
-                        <div class="preview-metric-value">{taux_marge_actuel:.1f}%</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                st.markdown("""
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Styles pour les métriques
-                st.markdown("""
-                <style>
-                /* Métriques modernes */
-                .preview-metrics-modern {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 1rem;
-                    margin: 1rem 0;
-                }
-                
-                .preview-metric {
-                    background: var(--neutral-50, #f8fafc);
-                    border: 1px solid var(--neutral-200, #e2e8f0);
-                    border-radius: var(--radius, 8px);
-                    padding: 1rem;
-                    text-align: center;
-                }
-                
-                .preview-metric-label {
-                    font-size: 0.85rem;
-                    font-weight: 500;
-                    color: var(--neutral-500, #64748b);
-                    margin-bottom: 0.5rem;
-                }
-                
-                .preview-metric-value {
-                    font-size: 1.25rem;
-                    font-weight: 700;
-                    color: var(--neutral-900, #0f172a);
-                }
-                </style>
-                """, unsafe_allow_html=True)
-
-        with tab2:
-            # Optimisation directe sans section englobante
-            
-            # Option d'optimisation des quantités - sans gap supplémentaire
-            st.markdown(f"""
-            <div class="form-modern" style="
-                padding: 1rem;
-                margin-top: 0.5rem;
-                margin-bottom: 0.75rem;
-            ">
-                <div class="form-section-modern" style="margin-bottom: 0.5rem;">
-                    <h3 style="font-size: 1rem; padding-bottom: 0.5rem;">
-                        <div class="form-section-icon" style="width: 28px; height: 28px;">
-                            <span style="font-size: 0.9rem;">⚖️</span>
+                # Métriques de coût et prix - design unifié et épuré
+                st.markdown(f"""
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem;">
+                    <div style="display: flex; align-items: center; padding: 0.5rem; background-color: white; border-radius: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;">
+                        <div style="margin-right: 0.5rem; width: 22px; text-align: center;">
+                            <span style="color: #64748b; font-size: 0.85rem;">💰</span>
                         </div>
-                        Optimiser les quantités
-                    </h3>
+                        <div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.1rem; font-weight: 500;">Coût matière</div>
+                            <div style="font-size: 1rem; font-weight: 600; color: #1e293b;">{cout_actuel:.2f} €</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; padding: 0.5rem; background-color: white; border-radius: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;">
+                        <div style="margin-right: 0.5rem; width: 22px; text-align: center;">
+                            <span style="color: #64748b; font-size: 0.85rem;">💵</span>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.1rem; font-weight: 500;">Prix de vente</div>
+                            <div style="font-size: 1rem; font-weight: 600; color: #1e293b;">{prix_affiche:.2f} €</div>
+                        </div>
+                    </div>
                 </div>
-                <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 0.75rem;">
-                    Ajuster automatiquement les grammages pour optimiser la marge
+                
+                <!-- Métriques de marge - design avec indication visuelle par couleur -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem;">
+                    <div style="display: flex; align-items: center; padding: 0.5rem; background-color: white; border-radius: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; border-left: 3px solid {margin_color};">
+                        <div style="margin-right: 0.5rem; width: 22px; text-align: center;">
+                            <span style="color: {margin_color}; font-size: 0.85rem;">📈</span>
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.1rem; font-weight: 500;">Marge brute</div>
+                            <div style="font-size: 1rem; font-weight: 600; color: {margin_color};">{marge_actuelle:.2f} €</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; padding: 0.5rem; background-color: white; border-radius: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; border-left: 3px solid {margin_color};">
+                        <div style="margin-right: 0.5rem; width: 22px; text-align: center;">
+                            <span style="color: {margin_color}; font-size: 0.85rem;">%</span>
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.1rem; font-weight: 500;">Taux de marge</div>
+                            <div style="font-size: 1rem; font-weight: 600; color: {margin_color};">{taux_marge_actuel:.1f}%</div>
+                        </div>
+                    </div>
                 </div>
+                """, unsafe_allow_html=True)
+                
+                # Barre de progression minimaliste et élégante
+                progress_pct = min(taux_marge_actuel / seuil_marge_perso, 1.0)
+                st.markdown(f"""
+                <div style="background-color: white; border-radius: 5px; padding: 0.5rem; margin-bottom: 0.6rem; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem; font-size: 0.7rem; color: #64748b;">
+                        <div style="font-weight: 500;">Progression</div>
+                        <div>{taux_marge_actuel:.1f}% / {seuil_marge_perso}%</div>
+                    </div>
+                    <div style="height: 5px; width: 100%; background-color: #f1f5f9; border-radius: 3px; overflow: hidden;">
+                        <div style="height: 100%; width: {progress_pct * 100}%; background-color: {margin_color}; border-radius: 3px;"></div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Message de statut compact et informatif
+                icon = "✅" if taux_marge_actuel >= seuil_marge_perso else "⚠️" if taux_marge_actuel >= seuil_marge_perso - 10 else "❌"
+                color = "#22c55e" if taux_marge_actuel >= seuil_marge_perso else "#f59e0b" if taux_marge_actuel >= seuil_marge_perso - 10 else "#ef4444"
+                status = "Objectif atteint" if taux_marge_actuel >= seuil_marge_perso else "Proche de l'objectif" if taux_marge_actuel >= seuil_marge_perso - 10 else "À optimiser"
+                
+                st.markdown(f"""
+                <div style="display: flex; align-items: center; padding: 0.4rem 0.5rem; border-radius: 4px; background-color: white; border: 1px solid #e2e8f0; border-left: 3px solid {color}; margin-bottom: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                    <div style="color: {color}; font-size: 0.85rem; margin-right: 0.4rem;">{icon}</div>
+                    <div style="color: #1e293b; font-size: 0.75rem; font-weight: 500;">{status}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with tab_col2:
+                # Métriques dans l'onglet Édition
+                afficher_metriques()
+        
+        # Tab 2: Optimisation
+        with optim_tab:
+            # En-tête stylisé de l'optimisation
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #f8fafc, #f0f9ff); border-radius: 10px; border: 1px solid #e2e8f0; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.04);">
+                <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1.1rem; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; letter-spacing: 0.01em; text-shadow: 0 1px 1px rgba(255,255,255,0.8);">
+                    <span style="font-size: 1.2rem;">⚡</span> Optimiser les grammages
+                </h3>
+                <p style="margin: 0; font-size: 0.9rem; color: #64748b;">
+                    Ajustez automatiquement les quantités pour optimiser la marge tout en respectant les proportions du plat.
+                </p>
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("Analyser les grammages", key="optimize_tab1", type="primary", use_container_width=True):
-                        with st.spinner("Analyse en cours..."):
-                            try:
-                                df_opt = optimize_grammages_balanced(ingr_modifie, prix_affiche, seuil_marge_perso)
-                                
-                                suggestions = []
-                                for _, row in ingr_modifie.iterrows():
-                                    ing = row["ingredient"]
-                                    old_q = row["quantite_g"]
-                                    matching = df_opt[df_opt["ingredient"] == ing]
-                                    new_q = float(matching["new_qty"].iloc[0]) if not matching.empty else old_q
-                                    if abs(new_q - old_q) > 1:  # Seulement si changement significatif
-                                        suggestions.append((ing, old_q, new_q))
-                                
-                                if suggestions:
-                                    st.session_state.suggestions = suggestions
-                                    st.session_state.no_optimization_found = False
-                                    st.success(f"{len(suggestions)} suggestion(s) d'optimisation trouvée(s)")
-                                else:
-                                    st.session_state.no_optimization_found = True
-                                    st.session_state.suggestions = None
-                                    st.info("Aucune optimisation significative trouvée")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Erreur d'optimisation : {e}")
-            
-            # Pas besoin de fermer la div externe qui a été supprimée
-            
-            # Affichage des suggestions optimisé
-            if st.session_state.suggestions:
-                # Calculer le nombre de suggestions
-                nb_suggestions = len(st.session_state.suggestions)
+            # Remplacer l'encadré par un expander Streamlit
+            with st.expander("ℹ️ Comprendre la méthodologie d'optimisation"):
+                st.markdown("""
+                <h4 style="margin-top: 0.5rem; margin-bottom: 0.8rem; font-size: 1.05rem; color: #0369a1;">Comment fonctionne l'optimisation ?</h4>
                 
-                st.markdown(f"""
-                <div class="form-section-modern" style="
-                    padding: 1.25rem;
-                    background-color: #fff;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 8px;
-                    margin-bottom: 1.5rem;
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-                ">
-                    <h3>
-                        <div class="form-section-icon" style="width: 28px; height: 28px;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </div>
-                        Suggestions d'optimisation
-                        <span style="
-                            display: inline-flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 0.875rem;
-                            font-weight: 600;
-                            background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
-                            color: white;
-                            border-radius: 9999px;
-                            margin-left: 0.75rem;
-                            padding: 0.25rem 0.75rem;
-                            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-                        ">{nb_suggestions}</span>
-                    </h3>
-                    <p style="margin-top: 0.5rem; color: #4B5563; font-size: 0.9rem;">
-                        Voici les ajustements recommandés pour optimiser le plat tout en conservant sa qualité.
+                <p style="margin: 0 0 0.7rem 0; font-size: 0.9rem; color: #334155; line-height: 1.5;">
+                    Notre algorithme utilise une approche <b>minimax équilibrée</b> qui répartit les ajustements de quantités de manière équitable entre les ingrédients :
+                </p>
+                
+                <ul style="margin: 0 0 0.8rem 0; padding-left: 1.2rem; font-size: 0.9rem; color: #334155;">
+                    <li style="margin-bottom: 0.4rem;">Les pâtes et bases sont préservées (coûts fixes)</li>
+                    <li style="margin-bottom: 0.4rem;">Chaque ingrédient est réduit proportionnellement au minimum nécessaire</li>
+                    <li style="margin-bottom: 0.4rem;">L'objectif est d'atteindre la marge cible de <b>{seuil_marge_perso}%</b> en minimisant l'impact sur la recette</li>
+                    <li style="margin-bottom: 0.4rem;">Les proportions entre ingrédients sont respectées autant que possible</li>
+                </ul>
+                
+                <div style="background-color: rgba(56, 189, 248, 0.1); border-left: 3px solid #0ea5e9; padding: 0.6rem; margin-top: 0.5rem; border-radius: 4px;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #0369a1; font-style: italic;">
+                        <b>Note :</b> L'algorithme garantit un grammage minimum de 5g pour chaque ingrédient variable pour préserver le goût et l'intégrité de la recette.
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
+            
+            # Deux colonnes pour l'optimisation et les métriques
+            optim_col1, optim_col2 = st.columns([3, 1])
+            
+            with optim_col1:
+                # Section optimisation avec style amélioré
+                if st.button("🚀 Analyser et optimiser les grammages", key="optimize", type="primary", use_container_width=True):
+                    with st.spinner("Analyse en cours..."):
+                        try:
+                            df_opt = optimize_grammages_balanced(ingr_modifie, prix_affiche, seuil_marge_perso)
+                            
+                            suggestions = []
+                            for _, row in ingr_modifie.iterrows():
+                                ing = row["ingredient"]
+                                old_q = row["quantite_g"]
+                                matching = df_opt[df_opt["ingredient"] == ing]
+                                new_q = float(matching["new_qty"].iloc[0]) if not matching.empty else old_q
+                                if abs(new_q - old_q) > 1:  # Seulement si changement significatif
+                                    suggestions.append((ing, old_q, new_q))
+                            
+                            if suggestions:
+                                st.session_state.suggestions = suggestions
+                                st.session_state.no_optimization_found = False
+                                st.success(f"✅ {len(suggestions)} suggestion(s) d'optimisation trouvée(s)")
+                            else:
+                                st.session_state.no_optimization_found = True
+                                st.session_state.suggestions = None
+                                st.info("Aucune optimisation significative trouvée")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur d'optimisation : {e}")
                 
-                suggestions_df = pd.DataFrame(st.session_state.suggestions, 
-                                            columns=["Ingrédient", "Quantité actuelle (g)", "Quantité suggérée (g)"])
-                suggestions_df["Différence (g)"] = suggestions_df["Quantité suggérée (g)"] - suggestions_df["Quantité actuelle (g)"]
-                suggestions_df["Différence (%)"] = (suggestions_df["Différence (g)"] / suggestions_df["Quantité actuelle (g)"]) * 100
-                
-                # Ajouter un CSS personnalisé pour améliorer l'apparence du tableau
-                st.markdown("""
-                <style>
-                    /* Styles personnalisés pour le tableau de suggestions */
-                    [data-testid="stDataFrame"] {
-                        border-radius: 8px;
-                        overflow: hidden;
-                        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-                    }
+                # Afficher les suggestions si disponibles
+                if hasattr(st.session_state, 'suggestions') and st.session_state.suggestions:
+                    st.markdown("""
+                    <div style="background-color: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 1rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.1rem; color: #334155; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 1.1rem;">💡</span> Suggestions d'optimisation
+                        </h3>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
-                    [data-testid="stDataFrame"] div[data-testid="stTable"] {
-                        background-color: white;
-                    }
+                    # Tableau des suggestions avec style amélioré
+                    data = []
+                    for ing, old_q, new_q in st.session_state.suggestions:
+                        diff = new_q - old_q
+                        diff_pct = (diff / old_q * 100) if old_q > 0 else 0
+                        data.append({
+                            "Ingrédient": ing,
+                            "Quantité actuelle (g)": f"{old_q:.1f}",
+                            "Nouvelle quantité (g)": f"{new_q:.1f}",
+                            "Variation": f"{diff_pct:+.1f}%"
+                        })
                     
-                    [data-testid="stDataFrame"] div[data-testid="stVerticalBlock"] {
-                        border-radius: 8px;
-                        overflow: hidden;
-                    }
+                    df = pd.DataFrame(data)
                     
-                    [data-testid="stDataFrame"] th {
-                        background-color: #F8FAFC !important;
-                        color: #1E293B !important;
-                        font-weight: 600 !important;
-                        text-transform: uppercase;
-                        font-size: 0.85rem !important;
-                        letter-spacing: 0.05em;
-                        border-bottom: 2px solid #E2E8F0 !important;
-                    }
+                    # Style amélioré pour le dataframe
+                    st.dataframe(
+                        df,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Ingrédient": st.column_config.TextColumn(
+                                "Ingrédient",
+                                width="medium",
+                                help="Nom de l'ingrédient"
+                            ),
+                            "Quantité actuelle (g)": st.column_config.NumberColumn(
+                                "Quantité actuelle (g)",
+                                format="%.1f g",
+                                width="small"
+                            ),
+                            "Nouvelle quantité (g)": st.column_config.NumberColumn(
+                                "Nouvelle quantité (g)",
+                                format="%.1f g",
+                                width="small"
+                            ),
+                            "Variation": st.column_config.TextColumn(
+                                "Variation",
+                                width="small"
+                            )
+                        }
+                    )
                     
-                    [data-testid="stDataFrame"] td {
-                        font-family: 'Inter', sans-serif;
-                    }
-                </style>
-                """, unsafe_allow_html=True)
-                
-                # Style du dataframe pour plus de clarté
-                # Utiliser une version simplifiée sans background_gradient pour éviter l'erreur matplotlib
-                styled_df = suggestions_df.style.format({
-                    "Quantité actuelle (g)": "{:.1f}",
-                    "Quantité suggérée (g)": "{:.1f}",
-                    "Différence (g)": "{:.1f}",
-                    "Différence (%)": "{:.1f}%"
-                })
-                
-                # Ajouter des indicateurs visuels pour les différences
-                def style_diff_column(val):
-                    if val < 0:
-                        color = '#DC2626'  # Rouge pour les diminutions
-                    else:
-                        color = '#10B981'  # Vert pour les augmentations
-                    return f'color: {color}; font-weight: 600;'
-                
-                # Appliquer le style conditionnel
-                styled_df = styled_df.applymap(style_diff_column, subset=['Différence (g)', 'Différence (%)'])
-                
-                st.dataframe(
-                    styled_df,
-                    use_container_width=True,
-                    hide_index=True
-                )
-                
-                # Boutons d'action avec style amélioré
-                st.markdown("""
-                <style>
-                    /* Style pour les boutons d'optimisation */
-                    div[data-testid="column"]:nth-child(1) [data-testid="baseButton-primary"] {
-                        background: linear-gradient(135deg, #34D399 0%, #10B981 100%) !important;
-                        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25) !important;
-                        transition: all 0.2s ease !important;
-                        border: none !important;
-                    }
+                    # Bouton d'application stylisé
+                    st.markdown("""
+                    <div style="margin: 1rem 0;">
+                        <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 0.75rem;">
+                            Appliquer ces suggestions permettra d'optimiser la marge tout en respectant les proportions du plat.
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
-                    div[data-testid="column"]:nth-child(1) [data-testid="baseButton-primary"]:hover {
-                        box-shadow: 0 6px 8px rgba(16, 185, 129, 0.3) !important;
-                        transform: translateY(-1px) !important;
-                    }
-                    
-                    div[data-testid="column"]:nth-child(2) [data-testid="baseButton-secondary"] {
-                        border: 1px solid #E2E8F0 !important;
-                        color: #64748B !important;
-                        background-color: white !important;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-                        transition: all 0.2s ease !important;
-                    }
-                    
-                    div[data-testid="column"]:nth-child(2) [data-testid="baseButton-secondary"]:hover {
-                        border-color: #CBD5E1 !important;
-                        color: #334155 !important;
-                        background-color: #F8FAFC !important;
-                    }
-                </style>
-                """, unsafe_allow_html=True)
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    if st.button("✓ Appliquer les suggestions", key="apply_suggestions_tab1", 
-                                type="primary", use_container_width=True):
+                    if st.button("✅ Appliquer toutes les suggestions", type="primary", use_container_width=True):
                         for ing, _, new_q in st.session_state.suggestions:
                             mask = ingr_modifie["ingredient"] == ing
                             if mask.any():
@@ -7398,29 +7476,32 @@ elif mode_analysis == "Modifier un plat":
                         
                         st.session_state.plat_actif["composition"] = ingr_modifie.to_dict(orient="records")
                         st.session_state.suggestions = None
-                        st.success("Toutes les optimisations ont été appliquées !")
+                        st.success("✅ Toutes les optimisations ont été appliquées!")
                         st.rerun()
-                
-                with col2:
-                    if st.button("Ignorer", key="ignore_suggestions", type="secondary", use_container_width=True):
-                        st.session_state.suggestions = None
-                        st.info("Suggestions ignorées")
-                        st.rerun()
+                        
+                elif hasattr(st.session_state, 'no_optimization_found') and st.session_state.no_optimization_found:
+                    st.markdown("""
+                    <div style="background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; padding: 1rem; margin: 1rem 0;">
+                        <p style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #64748b;">
+                            <span style="font-size: 1.2rem;">🔍</span>
+                            <span>Les grammages semblent déjà optimisés pour ce plat.</span>
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
             
-            # Affichage d'un message simple si aucune optimisation n'a été trouvée
-            elif "no_optimization_found" in st.session_state and st.session_state.no_optimization_found:
-                st.info("**Aucune optimisation significative trouvée**. Les quantités actuelles semblent déjà bien équilibrées. Vous pouvez ajuster manuellement les ingrédients ou essayer d'augmenter votre prix de vente pour améliorer votre marge.")
-
+            with optim_col2:
+                # Métriques dans l'onglet Optimisation
+                afficher_metriques()
         # Finalisation avec style cohérent avec la charte
         st.markdown("---")
         st.markdown("""
-        <div class="form-section-modern" style="margin-top: 1.5rem; margin-bottom: 1rem;">
-            <h3>
-                <div class="form-section-icon">
-                    <span style="font-size: 1.1rem;">✅</span>
-                </div>
-                Finalisation
+        <div style="background-color: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 1rem; margin: 1.5rem 0 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1.1rem; color: #334155; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                <span style="font-size: 1.2rem;">✅</span> Finalisation
             </h3>
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #64748b;">
+                Sauvegardez vos modifications ou revenez en arrière.
+            </p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -7429,30 +7510,67 @@ elif mode_analysis == "Modifier un plat":
             st.session_state.confirm_delete_dish = False
         if "confirm_reset_dish" not in st.session_state:
             st.session_state.confirm_reset_dish = False
-            
-        # Alerte discrète pour rappeler de sauvegarder
+        
+        # Zone d'actions avec style moderne
         st.markdown("""
-        <div style="
-            background-color: rgba(245, 158, 11, 0.1);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            border-radius: 6px;
-            padding: 0.5rem 0.8rem;
-            margin-bottom: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        ">
-            <div style="color: #f59e0b; font-size: 1.1rem;">⚠️</div>
-            <div style="color: #78350f; font-size: 0.85rem;">N'oubliez pas de sauvegarder vos modifications avant de quitter.</div>
+        <div style="background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; padding: 0.75rem; margin-bottom: 1rem;">
+            <p style="margin: 0; font-size: 0.85rem; color: #64748b;">
+                <span style="font-weight: 500;">Note:</span> Les modifications ne sont pas sauvegardées automatiquement. Utilisez le bouton ci-dessous pour enregistrer vos changements.
+            </p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Boutons d'action améliorés avec bouton Retour
-        col1, col2, col3, col4 = st.columns([1.5, 1, 1, 1])
+        # Boutons d'action stylisés
+        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
         
         # Bouton Sauvegarder (mis en évidence)
         with col1:
-            if st.button("💾 Sauvegarder les modifications", use_container_width=True, type="primary", key="save_dish"):
+            # Condition de sauvegarde
+            save_button_disabled = "save_success_time" in st.session_state
+            
+            save_clicked = st.button(
+                "💾 Sauvegarder les modifications", 
+                use_container_width=True, 
+                type="primary", 
+                key="save_dish",
+                disabled=save_button_disabled
+            )
+            
+            # Affichage du message de succès juste sous le bouton
+            if "save_success_time" in st.session_state:
+                current_time = time.time()
+                # Afficher le message pendant 3 secondes
+                if current_time - st.session_state.save_success_time < 3:
+                    # Message de succès stylisé
+                    st.markdown("""
+                    <div style="
+                        background-color: rgba(34, 197, 94, 0.1);
+                        border: 1px solid rgba(34, 197, 94, 0.3);
+                        border-radius: 6px;
+                        padding: 0.6rem 0.8rem;
+                        margin: 0.5rem 0 0.5rem 0;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        animation: fadeInUp 0.3s ease-out;
+                    ">
+                        <div style="color: #22c55e; font-size: 1rem;">✅</div>
+                        <div style="color: #166534; font-weight: 500; font-size: 0.85rem;">Plat sauvegardé avec succès !</div>
+                    </div>
+                    
+                    <style>
+                    @keyframes fadeInUp {
+                        from { opacity: 0; transform: translateY(5px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    </style>
+                    """, unsafe_allow_html=True)
+                else:
+                    # Supprimer la variable après 3 secondes pour faire disparaître le message
+                    del st.session_state.save_success_time
+                    st.rerun()
+            
+            if save_clicked:
                 try:
                     # Validation du nom
                     nom_original = st.session_state.plat_actif.get("nom_original", plat_data["nom"])
@@ -7486,15 +7604,15 @@ elif mode_analysis == "Modifier un plat":
                         # Sauvegarder dans le fichier
                         save_drafts(st.session_state.brouillons)
                         
-                        # Créer une clé d'état unique pour le message de succès
-                        if "save_success_time" not in st.session_state:
-                            st.session_state.save_success_time = time.time()
-                        else:
-                            st.session_state.save_success_time = time.time()
+                        # Créer une clé d'état pour le message de succès
+                        st.session_state.save_success_time = time.time()
                         
                         # Mise à jour du nom_original pour les futures sauvegardes
                         plat_data["nom_original"] = plat_data["nom"]
                         st.session_state.plat_actif = plat_data
+                        
+                        # Rechargement de la page pour afficher le message
+                        st.rerun()
                         
                 except Exception as e:
                     st.error(f"Erreur lors de la sauvegarde : {str(e)}")

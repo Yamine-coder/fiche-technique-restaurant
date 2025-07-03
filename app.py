@@ -1204,17 +1204,7 @@ def calculer_cout(ingredients_df: pd.DataFrame) -> pd.DataFrame:
         mask_pate_panini = ingredients_df["ingredient_original"].str.lower() == "pâte à panini"
         mask_pate_pizza = ingredients_df["ingredient_original"].str.lower() == "pâte à pizza"
     else:
-        # === VUE ÉDITION D'UN PLAT ===
-        plat_data = st.session_state.plat_actif
-        
-        # Vérification automatique du message de succès
-        if "save_success_time" in st.session_state:
-            current_time = time.time()
-            if current_time - st.session_state.save_success_time > 3:
-                del st.session_state.save_success_time
-                st.rerun()
-        
-        # Stocker une copie de l'état initial du plat si ce n'est pas déjà fait
+        # Utiliser simplement le nom de l'ingrédient pour les cas standards
         mask_pate_panini = ingredients_df["ingredient"].str.lower() == "pâte à panini"
         mask_pate_pizza = ingredients_df["ingredient"].str.lower() == "pâte à pizza"
     
@@ -6827,6 +6817,14 @@ elif mode_analysis == "Modifier un plat":
 
     else:
         # === VUE ÉDITION D'UN PLAT ===
+        # Vérifier si plat_actif existe dans la session state
+        if "plat_actif" not in st.session_state or st.session_state.plat_actif is None:
+            st.error("❌ Aucun plat n'est sélectionné pour l'édition.")
+            if st.button("🔄 Retour à la liste"):
+                st.session_state.edit_view = "liste"
+                st.rerun()
+            st.stop()
+            
         plat_data = st.session_state.plat_actif
         
         # Stocker une copie de l'état initial du plat si ce n'est pas déjà fait

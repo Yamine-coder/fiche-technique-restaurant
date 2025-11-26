@@ -55,6 +55,10 @@ from modules.views import (
     render_comparative_view,
 )
 
+EDIT_VIEW_AVAILABLE = False
+EDIT_VIEW_ERROR = None
+render_edit_dish_view = None
+
 # Import conditionnel pour edit_dish_view
 try:
     import sys
@@ -64,18 +68,16 @@ try:
     EDIT_VIEW_AVAILABLE = True
     print("[SUCCESS] edit_dish_view imported successfully")
 except SyntaxError as e:
-    print(f"[ERROR] SyntaxError in edit_dish_view:")
-    print(f"  File: {e.filename}")
-    print(f"  Line {e.lineno}: {e.text}")
-    print(f"  Message: {e.msg}")
-    EDIT_VIEW_AVAILABLE = False
-    render_edit_dish_view = None
+    EDIT_VIEW_ERROR = (
+        f"SyntaxError in {e.filename} line {e.lineno}: {e.msg}. Line content: {e.text.strip() if e.text else ''}"
+    )
+    print(f"[ERROR] {EDIT_VIEW_ERROR}")
 except Exception as e:
-    print(f"[ERROR] Failed to import edit_dish_view: {type(e).__name__}: {e}")
     import traceback
+
+    EDIT_VIEW_ERROR = f"{type(e).__name__}: {e}"
+    print(f"[ERROR] Failed to import edit_dish_view: {EDIT_VIEW_ERROR}")
     traceback.print_exc()
-    EDIT_VIEW_AVAILABLE = False
-    render_edit_dish_view = None
 
 
 # Injection des styles CSS globaux
@@ -355,11 +357,8 @@ with st.sidebar:
         "Vue d'ensemble",
         "Analyse d'un plat",
         "Analyse comparative",
+        "Modifier un plat",
     ]
-    
-    # Ajouter "Modifier un plat" seulement si disponible
-    if EDIT_VIEW_AVAILABLE:
-        nav_options.append("Modifier un plat")
 
     st.markdown('<div class="nav-group">', unsafe_allow_html=True)
     mode_analysis = st.radio(
@@ -369,6 +368,12 @@ with st.sidebar:
         label_visibility="collapsed",
     )
     st.markdown('</div>', unsafe_allow_html=True)
+
+    if not EDIT_VIEW_AVAILABLE:
+        warn_msg = "⚠️ La vue 'Modifier un plat' est temporairement indisponible."
+        if EDIT_VIEW_ERROR:
+            warn_msg += f"\nRaison: {EDIT_VIEW_ERROR}"
+        st.info(warn_msg)
 
     if "objectif_marge" not in st.session_state:
         st.session_state["objectif_marge"] = 70
@@ -399,11 +404,15 @@ elif mode_analysis == "Analyse comparative":
     render_comparative_view(recettes, ingredients, objectif_marge_actuel)
 
 elif mode_analysis == "Modifier un plat":
-    if EDIT_VIEW_AVAILABLE:
+    if EDIT_VIEW_AVAILABLE and render_edit_dish_view:
         print(f"[PERF] ✏️  Rendu Modifier un plat...")
         render_edit_dish_view(recettes, ingredients, objectif_marge_actuel)
     else:
-        st.error("⚠️ La vue 'Modifier un plat' est temporairement indisponible")
+        err = EDIT_VIEW_ERROR or "Import échoué pour des raisons inconnues"
+        st.error(
+            "⚠️ La vue 'Modifier un plat' est indisponible pour le moment.\n"
+            f"Détail: {err}"
+        )
 
 _render_time = time.time() - _render_start
 _total_time = time.time() - _perf_start

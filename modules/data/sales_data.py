@@ -7,7 +7,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from pathlib import Path
 
 # Import du gestionnaire DB (optionnel pour déploiement sans DB)
@@ -218,7 +218,7 @@ def get_ventes_produit(produit: str, nb_jours: int = 30) -> Dict[str, Any]:
         'df_historique': df
     }
 
-def needs_refresh(max_age_hours: int = 24) -> tuple[bool, str]:
+def needs_refresh(max_age_hours: int = 24) -> Tuple[bool, str]:
     """
     Vérifie si un rafraîchissement des données est nécessaire
     

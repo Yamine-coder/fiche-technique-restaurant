@@ -1,4 +1,4 @@
-﻿"""
+"""
 Modifier un plat - Interface de gestion et d'optimisation des recettes
 """
 import streamlit as st

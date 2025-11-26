@@ -1591,6 +1591,12 @@ def _render_optimization_assistant(ingr_modifie, prix_ht, seuil_marge, taux_actu
         priorite_color = "#22c55e"
         priorite_msg = "Recette déjà optimale"
     
+    # Préparer les valeurs pour éviter f-strings imbriqués
+    gain_color = '#22c55e' if ecart >= 0 else '#0f172a'
+    gain_text = 'Aucune optimisation nécessaire' if ecart >= 0 else f'{abs(gain_potentiel):.2f}€'
+    gain_detail = 'Objectif atteint' if ecart >= 0 else f"{abs(gain_pourcentage):.1f}% d'économie"
+    ecart_text = 'Dépassé' if ecart >= 0 else 'À combler'
+    
     st.markdown(f"""
     <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem 1.25rem; margin: 1rem 0 0.5rem 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
@@ -1613,11 +1619,11 @@ def _render_optimization_assistant(ingr_modifie, prix_ht, seuil_marge, taux_actu
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin: 0.75rem 0;">
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; text-align: center;">
             <div style="font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Gain potentiel</div>
-            <div style="font-size: 1.2rem; font-weight: 700; color: {'#22c55e' if ecart >= 0 else '#0f172a'};">
-                {('Aucune optimisation nécessaire' if ecart >= 0 else f'{abs(gain_potentiel):.2f}€')}
+            <div style="font-size: 1.2rem; font-weight: 700; color: {gain_color};">
+                {gain_text}
             </div>
             <div style="font-size: 0.65rem; color: #64748b; margin-top: 0.2rem;">
-                {('Objectif atteint' if ecart >= 0 else f'{abs(gain_pourcentage):.1f}% d\'économie')}
+                {gain_detail}
             </div>
         </div>
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; text-align: center;">
@@ -1628,7 +1634,7 @@ def _render_optimization_assistant(ingr_modifie, prix_ht, seuil_marge, taux_actu
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; text-align: center;">
             <div style="font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Écart objectif</div>
             <div style="font-size: 1.2rem; font-weight: 700; color: {status_color};">{ecart:+.1f}%</div>
-            <div style="font-size: 0.65rem; color: #64748b; margin-top: 0.2rem;">{'Dépassé' if ecart >= 0 else 'À combler'}</div>
+            <div style="font-size: 0.65rem; color: #64748b; margin-top: 0.2rem;">{ecart_text}</div>
         </div>
     </div>
     

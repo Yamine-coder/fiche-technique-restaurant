@@ -53,8 +53,17 @@ from modules.views import (
     render_overview_view,
     render_dish_analysis_view,
     render_comparative_view,
-    render_edit_dish_view
+    # render_edit_dish_view  # TODO: Debug SyntaxError Streamlit Cloud
 )
+
+# Import conditionnel pour edit_dish_view
+try:
+    from modules.views.edit_dish_view import render_edit_dish_view
+    EDIT_VIEW_AVAILABLE = True
+except Exception as e:
+    print(f"[WARN] edit_dish_view non disponible: {e}")
+    EDIT_VIEW_AVAILABLE = False
+    render_edit_dish_view = None
 
 
 # Injection des styles CSS globaux
@@ -334,8 +343,11 @@ with st.sidebar:
         "Vue d'ensemble",
         "Analyse d'un plat",
         "Analyse comparative",
-        "Modifier un plat",
     ]
+    
+    # Ajouter "Modifier un plat" seulement si disponible
+    if EDIT_VIEW_AVAILABLE:
+        nav_options.append("Modifier un plat")
 
     st.markdown('<div class="nav-group">', unsafe_allow_html=True)
     mode_analysis = st.radio(
@@ -375,8 +387,11 @@ elif mode_analysis == "Analyse comparative":
     render_comparative_view(recettes, ingredients, objectif_marge_actuel)
 
 elif mode_analysis == "Modifier un plat":
-    print(f"[PERF] ✏️  Rendu Modifier un plat...")
-    render_edit_dish_view(recettes, ingredients, objectif_marge_actuel)
+    if EDIT_VIEW_AVAILABLE:
+        print(f"[PERF] ✏️  Rendu Modifier un plat...")
+        render_edit_dish_view(recettes, ingredients, objectif_marge_actuel)
+    else:
+        st.error("⚠️ La vue 'Modifier un plat' est temporairement indisponible")
 
 _render_time = time.time() - _render_start
 _total_time = time.time() - _perf_start

@@ -9,7 +9,7 @@ from urllib.parse import quote
 from modules.data.constants import TVA_VENTE, prix_vente_dict
 from modules.business.cost_calculator import calculer_cout, get_dough_cost
 from modules.utils.image_helpers import get_plat_image_path, get_image_data_uri
-from modules.components.chatbot import render_floating_chatbot
+# from modules.components.chatbot import render_floating_chatbot  # TODO: Ajouter dossier chatbot/ au repo
 
 
 def render_overview_view(recettes, ingredients, objectif_marge):
@@ -612,4 +612,4 @@ def render_overview_view(recettes, ingredients, objectif_marge):
                             html_card = "\n".join(card_lines)
                             st.markdown(html_card, unsafe_allow_html=True)    # Coach guidé - Décisions express
     # Seul assistant conservé : bouton qui ouvre le dialog guidé
-    render_floating_chatbot(df_plats, ingredients, objectif_marge_actuel)
+    # render_floating_chatbot(df_plats, ingredients, objectif_marge_actuel)  # TODO: Ajouter dossier chatbot/ au repo

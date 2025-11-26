@@ -7,7 +7,7 @@ from .headers import render_view_header
 from .insights import render_overview_insights
 from .simulators import render_global_simulator, render_decision_simulator
 from .images import afficher_image_plat
-from .chatbot import render_floating_chatbot
+# from .chatbot import render_floating_chatbot  # TODO: Ajouter dossier chatbot/ au repo
 
 __all__ = [
     "render_view_header",
@@ -15,5 +15,5 @@ __all__ = [
     "render_global_simulator",
     "render_decision_simulator",
     "afficher_image_plat",
-    "render_floating_chatbot",
+    # "render_floating_chatbot",
 ]

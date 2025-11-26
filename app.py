@@ -46,7 +46,7 @@ from modules.components import (
     render_global_simulator, render_decision_simulator,
     afficher_image_plat,
 )
-from modules.components.chatbot import render_floating_chatbot
+# from modules.components.chatbot import render_floating_chatbot  # TODO: Ajouter dossier chatbot/ au repo
 
 # Vues principales
 from modules.views import (

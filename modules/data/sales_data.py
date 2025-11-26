@@ -10,10 +10,22 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from pathlib import Path
 
-# Import du gestionnaire DB
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from kezia_db_manager import get_db_manager
+# Import du gestionnaire DB (optionnel pour déploiement sans DB)
+try:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from kezia_db_manager import get_db_manager
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
+    print("[WARN] kezia_db_manager non disponible, mode sans DB")
+    
+def get_db_manager():
+    """Wrapper pour gérer l'absence de DB"""
+    if not DB_AVAILABLE:
+        return None
+    from kezia_db_manager import get_db_manager as _get_db
+    return _get_db()
 
 @st.cache_data(ttl=300)  # Cache 5 minutes
 def load_ventes(nb_jours: int = 30, 
@@ -41,20 +53,27 @@ def load_ventes(nb_jours: int = 30,
     """
     db = get_db_manager()
     
+    # Si DB non disponible, retourner DataFrame vide
+    if db is None:
+        return pd.DataFrame(columns=['date', 'produit', 'quantite', 'ca_ttc', 'prix_moyen', 'shop_id', 'temporality'])
+    
     # Si dates non spécifiées, calculer depuis nb_jours
     if not date_debut:
         date_debut = (datetime.now() - timedelta(days=nb_jours)).strftime('%Y-%m-%d')
     if not date_fin:
         date_fin = datetime.now().strftime('%Y-%m-%d')
     
-    df = db.query_ventes(
-        date_debut=date_debut,
-        date_fin=date_fin,
-        produit=produit,
-        temporality=temporality
-    )
-    
-    return df
+    try:
+        df = db.query_ventes(
+            date_debut=date_debut,
+            date_fin=date_fin,
+            produit=produit,
+            temporality=temporality
+        )
+        return df
+    except Exception as e:
+        print(f"[ERROR] Erreur chargement ventes: {e}")
+        return pd.DataFrame(columns=['date', 'produit', 'quantite', 'ca_ttc', 'prix_moyen', 'shop_id', 'temporality'])
 
 @st.cache_data(ttl=600)  # Cache 10 minutes
 def get_stats_globales() -> Dict[str, Any]:
@@ -69,7 +88,31 @@ def get_stats_globales() -> Dict[str, Any]:
         >>> st.metric("CA Total", f"{stats['ca_total']:.0f}€")
     """
     db = get_db_manager()
-    return db.get_stats()
+    
+    if db is None:
+        return {
+            'nb_ventes': 0,
+            'nb_produits': 0,
+            'date_min': None,
+            'date_max': None,
+            'ca_total': 0,
+            'quantite_total': 0,
+            'db_size_mb': 0
+        }
+    
+    try:
+        return db.get_stats()
+    except Exception as e:
+        print(f"[ERROR] Erreur récupération stats: {e}")
+        return {
+            'nb_ventes': 0,
+            'nb_produits': 0,
+            'date_min': None,
+            'date_max': None,
+            'ca_total': 0,
+            'quantite_total': 0,
+            'db_size_mb': 0
+        }
 
 @st.cache_data(ttl=600)
 def get_top_produits(nb_jours: int = 30, limit: int = 10, order_by: str = 'quantite') -> pd.DataFrame:
@@ -191,19 +234,27 @@ def needs_refresh(max_age_hours: int = 24) -> tuple[bool, str]:
         >>>     st.warning(msg)
     """
     db = get_db_manager()
-    last_sync = db.get_last_sync()
     
-    if not last_sync:
-        return True, "Aucune synchronisation effectuée"
+    if db is None:
+        return False, "Base de données non disponible"
     
-    # Calculer l'âge
-    sync_date = datetime.fromisoformat(last_sync['created_at'])
-    age_hours = (datetime.now() - sync_date).total_seconds() / 3600
-    
-    if age_hours > max_age_hours:
-        return True, f"Données obsolètes ({age_hours:.1f}h)"
-    
-    return False, f"Données à jour ({age_hours:.1f}h)"
+    try:
+        last_sync = db.get_last_sync()
+        
+        if not last_sync:
+            return True, "Aucune synchronisation effectuée"
+        
+        # Calculer l'âge
+        sync_date = datetime.fromisoformat(last_sync['created_at'])
+        age_hours = (datetime.now() - sync_date).total_seconds() / 3600
+        
+        if age_hours > max_age_hours:
+            return True, f"Données obsolètes ({age_hours:.1f}h)"
+        
+        return False, f"Données à jour ({age_hours:.1f}h)"
+    except Exception as e:
+        print(f"[ERROR] Erreur vérification refresh: {e}")
+        return False, "Erreur vérification"
 
 def clear_cache():
     """

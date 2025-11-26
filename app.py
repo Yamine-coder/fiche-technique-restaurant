@@ -53,17 +53,10 @@ from modules.views import (
     render_overview_view,
     render_dish_analysis_view,
     render_comparative_view,
-    # render_edit_dish_view  # TODO: Debug SyntaxError Streamlit Cloud
+    render_edit_dish_view
 )
 
-# Import conditionnel pour edit_dish_view
-try:
-    from modules.views.edit_dish_view import render_edit_dish_view
-    EDIT_VIEW_AVAILABLE = True
-except Exception as e:
-    print(f"[WARN] edit_dish_view non disponible: {e}")
-    EDIT_VIEW_AVAILABLE = False
-    render_edit_dish_view = None
+EDIT_VIEW_AVAILABLE = True
 
 
 # Injection des styles CSS globaux

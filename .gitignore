@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Credentials (NE JAMAIS COMMITER)
+config_local.py
+.env
+
+# Data files (sensibles / trop gros)
+*.db
+*.sqlite
+*.sqlite3
+data/kezia_*.csv
+data/kezia_*.db
+data/cache/
+data/pertes.db
+logs/
+
+# Backups et temporaires
+*_backup*.py
+*_backup*.xlsx
+~$*.xlsx
+brouillons.json
+*.tmp
+*.bak
+
+# Documentation temporaire
+PHASE_*.md
+REFACTORING_*.md
+ARCHITECTURE_*.md
+
+# Tests
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

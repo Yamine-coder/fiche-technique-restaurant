@@ -1708,16 +1708,17 @@ def _render_optimization_assistant(ingr_modifie, prix_ht, seuil_marge, taux_actu
         """, unsafe_allow_html=True)
         
         # Tableau avec économie
-        summary_df = pd.DataFrame([
-            {
+        summary_rows = []
+        for ing, old_q, new_q, economie in suggestions:
+            ecart_pct = ((new_q - old_q) / old_q * 100)
+            summary_rows.append({
                 "Ingrédient": ing,
                 "Avant (g)": round(old_q, 1),
                 "Après (g)": round(new_q, 1),
-                "Écart": f"{((new_q - old_q) / old_q * 100):+.1f}%",
+                "Écart": f"{ecart_pct:+.1f}%",
                 "Économie": f"{economie:.2f}€"
-            }
-            for ing, old_q, new_q, economie in suggestions
-        ])
+            })
+        summary_df = pd.DataFrame(summary_rows)
         
         st.dataframe(
             summary_df,

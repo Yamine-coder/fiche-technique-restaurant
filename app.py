@@ -432,4 +432,4 @@ if not df_plats_chatbot.empty and "plat" in df_plats_chatbot.columns:
             df_plats_chatbot.at[idx, "nom"] = plat_name
 
 # Affichage du chatbot flottant sur toutes les pages
-render_floating_chatbot(df_plats_chatbot, ingredients, objectif_marge_actuel)
+# render_floating_chatbot(df_plats_chatbot, ingredients, objectif_marge_actuel)  # TODO: Ajouter dossier chatbot/ au repo

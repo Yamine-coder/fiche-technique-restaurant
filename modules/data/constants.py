@@ -81,17 +81,27 @@ PRIX_VENTE_DICT = {
     # Burrata
     "Burrata feuille La véritable": 6.90,
     
-    # Pâtes
+    # Pâtes (avec et sans préfixe "Pâte")
     "Pâte Bolognaise": 9.90,
+    "Bolognaise": 9.90,
     "Pâte Truffe": 9.90,
+    "Truffe": 9.90,
     "Pâte Saumon": 9.90,
+    "Saumon": 9.90,
     "Pâte Carbonara": 9.90,
+    "Carbonara": 9.90,
     "Pâte Fermière": 9.90,
+    "Fermière": 9.90,
     "Pâte 3 Fromages": 9.90,
+    "3 Fromages": 9.90,
     "Pâte Napolitaine": 9.90,
+    "Napolitaine": 9.90,
     "Pâte Sicilienne": 9.90,
+    "Sicilienne": 9.90,
     "Pâte Arrabiata": 8.90,
+    "Arrabiata": 8.90,
     "Pâte Arrabiata Poulet": 9.90,
+    "Arrabiata Poulet": 9.90,
     
     # Pains maison
     "Pain aux herbes et mozzarella": 3.00,
@@ -156,17 +166,27 @@ IMAGES_PLATS = {
     "4 Saisons S": "4 saisons.webp",
     "4 Saisons M": "4 saisons.webp",
     
-    # Pâtes
+    # Pâtes (avec et sans préfixe "Pâte")
     "Pâte Bolognaise": "pates_bolognaise.webp",
+    "Bolognaise": "pates_bolognaise.webp",
     "Pâte Truffe": "pates_truffe.webp",
+    "Truffe": "pates_truffe.webp",
     "Pâte Saumon": "pates_saumon.webp",
+    "Saumon": "pates_saumon.webp",
     "Pâte Carbonara": "pates_carbonara.webp",
+    "Carbonara": "pates_carbonara.webp",
     "Pâte Fermière": "pates_fermiere.webp",
+    "Fermière": "pates_fermiere.webp",
     "Pâte 3 Fromages": "pates_3fromages.webp",
+    "3 Fromages": "pates_3fromages.webp",
     "Pâte Napolitaine": "pates_napolitaine.webp",
+    "Napolitaine": "pates_napolitaine.webp",
     "Pâte Sicilienne": "pates_sicilienne.webp",
+    "Sicilienne": "pates_sicilienne.webp",
     "Pâte Arrabiata": "pates_arrabiata.webp",
+    "Arrabiata": "pates_arrabiata.webp",
     "Pâte Arrabiata Poulet": "pates_arrabiata_poulet.jpeg",
+    "Arrabiata Poulet": "pates_arrabiata_poulet.jpeg",
     
     # Pains maison
     "Pain aux herbes et mozzarella": "pain_herbes_mozza.webp",

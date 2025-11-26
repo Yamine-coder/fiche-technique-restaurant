@@ -5,3 +5,4 @@ openpyxl>=3.0.0
 pulp
 matplotlib>=3.5.0
 scipy>=1.10.0
+requests>=2.31.0

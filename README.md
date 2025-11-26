@@ -10,23 +10,33 @@
 
 ## 🎯 Objectifs de l'application
 
-- 💰 **Calcul automatique du coût matière** et de la marge  
-- 📊 Analyse visuelle de la rentabilité des plats  
-- 🛠️ Création et modification de recettes personnalisées  
-- 🧠 Suggestions d’ajustement des prix ou des compositions  
+- 💰 **Calcul automatique du coût matière** et de la marge
+- 📊 Analyse visuelle de la rentabilité des plats
+- 🛠️ Création et modification de recettes personnalisées
+- 🧠 Suggestions d’ajustement des prix ou des compositions
+- 🎛️ **Assistant guidé 100% boutons** pour décider sans chat libre
 - 📂 Export possible des résultats en PDF / tableur (à venir)
 
 ---
 
 ## 🔍 Fonctionnalités principales
 
-| Fonction                        | Description |
-|--------------------------------|-------------|
-| 🧾 Fiche technique              | Détail complet d’un plat : ingrédients, coût, marge |
-| 📈 Analyse comparative          | Classement des plats les plus/moins rentables |
-| ✏️ Éditeur de recettes          | Création de plats personnalisés (drag & drop) |
-| 🧠 Aide à la décision           | Recommandations de marge et de prix |
-| 📸 Visuels intégrés             | Illustration des plats dans l’analyse |
+| Fonction                  | Description                                               |
+| ------------------------- | --------------------------------------------------------- |
+| 🧾 Fiche technique        | Détail complet d’un plat : ingrédients, coût, marge   |
+| 📈 Analyse comparative    | Classement des plats les plus/moins rentables             |
+| ✏️ Éditeur de recettes | Création de plats personnalisés (drag & drop)           |
+| 🧠 Aide à la décision   | Recommandations de marge et de prix                       |
+| 🎛️ Mode guidé enrichi  | 3 niveaux de questions pré-configurées sans champ libre |
+| 📸 Visuels intégrés     | Illustration des plats dans l’analyse                    |
+
+### 🧠 Mode guidé enrichi (Option A)
+
+- Accès via le bouton flottant → ouvre un **coach modal** 100% boutons
+- **Diagnostic flash** : marge vs objectif, prix conseillé, alerte négociation
+- **Atelier actions** : trois leviers (volume, hausse prix, négociation fournisseur) en onglets
+- Calculs instantanés (volume cible, impact marge, gain négociation) sans appel IA
+- Compatible mobile et desktop, aucune zone de texte ou chat libre
 
 ---
 
@@ -83,11 +93,11 @@ streamlit run app.py
 
 ## 👨‍🍳 Exemple de cas d’usage
 
-> Le gérant souhaite analyser ses pizzas "Truffe", "Savoyarde" et "Panini Pizz", et détecter les marges trop faibles.  
-> En quelques clics, l’app affiche :
-> - Le coût matière exact  
-> - Le prix de vente conseillé  
-> - Le taux de marge  
+> Le gérant souhaite analyser ses pizzas "Truffe", "Savoyarde" et "Panini Pizz", et détecter les marges trop faibles.En quelques clics, l’app affiche :
+>
+> - Le coût matière exact
+> - Le prix de vente conseillé
+> - Le taux de marge
 > - Des recommandations (ajustement prix ou composition)
 
 ---
@@ -100,16 +110,16 @@ Projet sous licence MIT – libre d’utilisation et de modification pour un usa
 
 ## 🙋‍♂️ Auteur
 
-**Yamine Moussaoui**  
-🎓 MSc Intelligence Artificielle & Big Data  
-💼 Consultant en Solutions Data & IA  
-🔗 [LinkedIn](https://www.linkedin.com/in/yamine-moussaoui/)  
-📧 moussaouiyamine1@gmail.com  
+**Yamine Moussaoui**
+🎓 MSc Intelligence Artificielle & Big Data
+💼 Consultant en Solutions Data & IA
+🔗 [LinkedIn](https://www.linkedin.com/in/yamine-moussaoui/)
+📧 moussaouiyamine1@gmail.com
 🔎 [GitHub](https://github.com/Yamine-coder)
 
 ---
 
-> *Optimisez vos marges sans sacrifier la qualité.*  
+> *Optimisez vos marges sans sacrifier la qualité.*
 > *Une solution simple, visuelle et intelligente pour les restaurateurs.*
 
 # 🍕 Fiche Technique - Restaurant
@@ -124,26 +134,35 @@ Projet sous licence MIT – libre d’utilisation et de modification pour un usa
 
 ## 🎯 Objectifs de l'application
 
-- 💰 **Calcul automatique du coût matière** et de la marge  
-- 📊 Analyse visuelle de la rentabilité des plats  
-- 🛠️ Création et modification de recettes personnalisées  
-- 🧠 Suggestions d’ajustement des prix ou des compositions  
+- 💰 **Calcul automatique du coût matière** et de la marge
+- 📊 Analyse visuelle de la rentabilité des plats
+- 🛠️ Création et modification de recettes personnalisées
+- 🧠 Suggestions d’ajustement des prix ou des compositions
+- 🎛️ **Assistant guidé 100% boutons** pour décider sans chat libre
 - 📂 Export possible des résultats en PDF / tableur (à venir)
 
 ---
 
 ## 🔍 Fonctionnalités principales
 
-| Fonction                        | Description |
-|--------------------------------|-------------|
-| 🧾 Fiche technique              | Détail complet d’un plat : ingrédients, coût, marge |
-| 📈 Analyse comparative          | Classement des plats les plus/moins rentables |
-| ✏️ Éditeur de recettes          | Création de plats personnalisés (drag & drop) |
-| 🧠 Aide à la décision           | Recommandations de marge et de prix |
-| 📸 Visuels intégrés             | Illustration des plats dans l’analyse |
+| Fonction                  | Description                                               |
+| ------------------------- | --------------------------------------------------------- |
+| 🧾 Fiche technique        | Détail complet d’un plat : ingrédients, coût, marge   |
+| 📈 Analyse comparative    | Classement des plats les plus/moins rentables             |
+| ✏️ Éditeur de recettes | Création de plats personnalisés (drag & drop)           |
+| 🧠 Aide à la décision   | Recommandations de marge et de prix                       |
+| 🎛️ Mode guidé enrichi  | 3 niveaux de questions pré-configurées sans champ libre |
+| 📸 Visuels intégrés     | Illustration des plats dans l’analyse                    |
+
+### 🧠 Mode guidé enrichi (Option A)
+
+- Accès via le bouton flottant → ouvre un **coach modal** 100% boutons
+- **Diagnostic flash** : marge vs objectif, prix conseillé, alerte négociation
+- **Atelier actions** : trois leviers (volume, hausse prix, négociation fournisseur) en onglets
+- Calculs instantanés (volume cible, impact marge, gain négociation) sans appel IA
+- Compatible mobile et desktop, aucune zone de texte ou chat libre
 
 ---
-
 
 ## 🧰 Stack technique
 
@@ -192,11 +211,11 @@ streamlit run app.py
 
 ## 👨‍🍳 Exemple de cas d’usage
 
-> Le gérant souhaite analyser ses pizzas "Truffe", "Savoyarde" et "Panini Pizz", et détecter les marges trop faibles.  
-> En quelques clics, l’app affiche :
-> - Le coût matière exact  
-> - Le prix de vente conseillé  
-> - Le taux de marge  
+> Le gérant souhaite analyser ses pizzas "Truffe", "Savoyarde" et "Panini Pizz", et détecter les marges trop faibles.En quelques clics, l’app affiche :
+>
+> - Le coût matière exact
+> - Le prix de vente conseillé
+> - Le taux de marge
 > - Des recommandations (ajustement prix ou composition)
 
 ---
@@ -209,14 +228,14 @@ Projet sous licence MIT – libre d’utilisation et de modification pour un usa
 
 ## 🙋‍♂️ Auteur
 
-**Yamine Moussaoui**  
-🎓 MSc Intelligence Artificielle & Big Data  
-💼 Consultant en Solutions Data & IA  
-🔗 [LinkedIn](https://www.linkedin.com/in/yamine-moussaoui-672a25205/)  
-📧 moussaouiyamine1@gmail.com  
+**Yamine Moussaoui**
+🎓 MSc Intelligence Artificielle & Big Data
+💼 Consultant en Solutions Data & IA
+🔗 [LinkedIn](https://www.linkedin.com/in/yamine-moussaoui-672a25205/)
+📧 moussaouiyamine1@gmail.com
 🔎 [GitHub](https://github.com/Yamine-coder)
 
 ---
 
-> *Optimisez vos marges sans sacrifier la qualité.*  
+> *Optimisez vos marges sans sacrifier la qualité.*
 > *Une solution simple, visuelle et intelligente pour les restaurateurs.*

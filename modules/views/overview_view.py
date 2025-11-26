@@ -503,23 +503,6 @@ def render_overview_view(recettes, ingredients, objectif_marge):
             )
         else:
             plats_data = df_plats.to_dict("records")
-            
-            # Calculer l''ingr?dient principal pour chaque plat
-            for plat_d in plats_data:
-                plat_ingredients = ingredients[ingredients["plat"] == plat_d["nom"]]
-                if not plat_ingredients.empty and "Co?t (?)" in plat_ingredients.columns:
-                    ingredient_principal = plat_ingredients.nlargest(1, "Co?t (?)")
-                    if not ingredient_principal.empty:
-                        plat_d["ingredient_principal"] = ingredient_principal.iloc[0]["ingredient"]
-                        plat_d["ingredient_principal_cout"] = ingredient_principal.iloc[0]["Co?t (?)"]
-                        if plat_d["cout_matiere"] > 0:
-                            plat_d["ingredient_principal_pct"] = (ingredient_principal.iloc[0]["Co?t (?)"] / plat_d["cout_matiere"] * 100)
-                        else:
-                            plat_d["ingredient_principal_pct"] = 0
-                    else:
-                        plat_d["ingredient_principal"] = None
-                else:
-                    plat_d["ingredient_principal"] = None
 
             cols_per_row = 4 if len(plats_data) >= 4 else (3 if len(plats_data) >= 3 else (2 if len(plats_data) > 1 else 1))
             for i in range(0, len(plats_data), cols_per_row):
@@ -567,10 +550,6 @@ def render_overview_view(recettes, ingredients, objectif_marge):
                                 f'            <span style="position: absolute; top: 0.6rem; left: 0.6rem; background: {status_bg}; color: white; font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 999px; box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);">{status_text}</span>',
                                 f'            <span style="position: absolute; top: 0.6rem; right: 0.6rem; background: rgba(255, 255, 255, 0.9); color: {marge_color}; font-size: 0.78rem; font-weight: 700; padding: 0.28rem 0.65rem; border-radius: 999px; box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25); border: 1px solid rgba(255, 255, 255, 0.85); backdrop-filter: blur(6px);">{plat_d["marge_pct"]:.1f}%</span>',
                                 f'            <span style="position: absolute; bottom: 0.6rem; left: 0.6rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 0.25rem 0.55rem; border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: #475569; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);">{plat_d["categorie"]}</span>',
-                                # Badge ingr?dient principal en bas ? droite
-                                (f'            <span style="position: absolute; bottom: 0.6rem; right: 0.6rem; font-size: 0.65rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 8px; background: rgba(217, 35, 50, 0.9); color: white; box-shadow: 0 4px 12px rgba(217, 35, 50, 0.35); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">'
-                                 f'{plat_d.get("ingredient_principal", "")[:18]}</span>' 
-                                 if plat_d.get("ingredient_principal") else ''),
                                 '            <div class="fiche-technique-center" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0; transition: all 0.3s ease;">',
                                 '                <div style="font-size: 0.8rem; font-weight: 600; color: white; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);">',
                                 '                    Voir la fiche →',
@@ -595,10 +574,10 @@ def render_overview_view(recettes, ingredients, objectif_marge):
                                 '            <div style="position: relative; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">',
                                 f'                <div style="width: {progress_width}%; background: {marge_color}; height: 100%;"></div>',
                                 '            </div>',
-                                '        </div>',
-                                '    </div>',
-                                '    <!--  Badge ventes -->',
-                                ''
+                        '        </div>',
+                        '    </div>',
+                        '    <!-- 🆕 Badge ventes -->',
+                        ''
                             ]
                             
                             # 🆕 Ajouter badge de ventes si disponible
@@ -620,7 +599,6 @@ def render_overview_view(recettes, ingredients, objectif_marge):
                                 card_lines.append(ventes_html)
                             
                             card_lines.extend([
-                        '</div>',
                         '</div>',
                         '<style>',
                         '.plat-card-link:hover .fiche-technique-center {',

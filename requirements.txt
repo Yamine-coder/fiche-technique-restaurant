@@ -6,3 +6,5 @@ pulp
 matplotlib>=3.5.0
 scipy>=1.10.0
 requests>=2.31.0
+
+# Force rebuild 2025-11-26

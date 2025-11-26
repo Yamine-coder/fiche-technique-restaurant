@@ -621,6 +621,7 @@ def render_overview_view(recettes, ingredients, objectif_marge):
                             
                             card_lines.extend([
                         '</div>',
+                        '</div>',
                         '<style>',
                         '.plat-card-link:hover .fiche-technique-center {',
                         '    opacity: 1 !important;',

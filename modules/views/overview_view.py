@@ -595,10 +595,10 @@ def render_overview_view(recettes, ingredients, objectif_marge):
                                 '            <div style="position: relative; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">',
                                 f'                <div style="width: {progress_width}%; background: {marge_color}; height: 100%;"></div>',
                                 '            </div>',
-                        '        </div>',
-                        '    </div>',
-                        '    <!-- 🆕 Badge ventes -->',
-                        ''
+                                '        </div>',
+                                '    </div>',
+                                '    <!--  Badge ventes -->',
+                                ''
                             ]
                             
                             # 🆕 Ajouter badge de ventes si disponible

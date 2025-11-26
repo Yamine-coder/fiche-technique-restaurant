@@ -55,13 +55,23 @@ from modules.views import (
     render_comparative_view,
 )
 
-# Import conditionnel pour edit_dish_view (debug syntaxe Streamlit Cloud)
+# Import conditionnel pour edit_dish_view
 try:
+    import sys
+    print(f"[DEBUG] Python version: {sys.version}")
+    print("[DEBUG] Attempting to import edit_dish_view...")
     from modules.views.edit_dish_view import render_edit_dish_view
     EDIT_VIEW_AVAILABLE = True
-    print("[INFO] edit_dish_view imported successfully")
+    print("[SUCCESS] edit_dish_view imported successfully")
+except SyntaxError as e:
+    print(f"[ERROR] SyntaxError in edit_dish_view:")
+    print(f"  File: {e.filename}")
+    print(f"  Line {e.lineno}: {e.text}")
+    print(f"  Message: {e.msg}")
+    EDIT_VIEW_AVAILABLE = False
+    render_edit_dish_view = None
 except Exception as e:
-    print(f"[ERROR] edit_dish_view import failed: {type(e).__name__}: {e}")
+    print(f"[ERROR] Failed to import edit_dish_view: {type(e).__name__}: {e}")
     import traceback
     traceback.print_exc()
     EDIT_VIEW_AVAILABLE = False

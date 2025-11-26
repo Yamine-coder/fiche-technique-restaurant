@@ -1692,15 +1692,16 @@ def _render_optimization_assistant(ingr_modifie, prix_ht, seuil_marge, taux_actu
     total_economie = st.session_state.get("total_economie", 0)
     
     if suggestions:
+        eco_str = f"{total_economie:.2f}"
         st.markdown(f"""
         <div class="section-block">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div class="section-title-inline">🎯 Suggestions</div>
-                    <div style="font-size: 0.75rem; color: #64748b;">Ajustements proposés • Économie totale: <strong style="color: #22c55e;">{total_economie:.2f}€</strong></div>
+                    <div style="font-size: 0.75rem; color: #64748b;">Ajustements proposés • Économie totale: <strong style="color: #22c55e;">{eco_str}€</strong></div>
                 </div>
                 <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 4px; padding: 0.3rem 0.6rem;">
-                    <span style="color: #15803d; font-size: 0.75rem; font-weight: 600;">💰 +{total_economie:.2f}€ par plat</span>
+                    <span style="color: #15803d; font-size: 0.75rem; font-weight: 600;">💰 +{eco_str}€ par plat</span>
                 </div>
             </div>
         </div>

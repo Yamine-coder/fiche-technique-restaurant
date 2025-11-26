@@ -53,10 +53,19 @@ from modules.views import (
     render_overview_view,
     render_dish_analysis_view,
     render_comparative_view,
-    render_edit_dish_view
 )
 
-EDIT_VIEW_AVAILABLE = True
+# Import conditionnel pour edit_dish_view (debug syntaxe Streamlit Cloud)
+try:
+    from modules.views.edit_dish_view import render_edit_dish_view
+    EDIT_VIEW_AVAILABLE = True
+    print("[INFO] edit_dish_view imported successfully")
+except Exception as e:
+    print(f"[ERROR] edit_dish_view import failed: {type(e).__name__}: {e}")
+    import traceback
+    traceback.print_exc()
+    EDIT_VIEW_AVAILABLE = False
+    render_edit_dish_view = None
 
 
 # Injection des styles CSS globaux

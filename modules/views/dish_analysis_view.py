@@ -679,6 +679,125 @@ def render_dish_analysis_view(recettes, ingredients, objectif_marge):
             top_ing = grouped_finale.sort_values("Coût (€)", ascending=False).iloc[0]
             part = (top_ing["Coût (€)"] / cout_matiere) * 100 if cout_matiere > 0 else 0
     
+            
+            # Focus Ingrédient Principal à côté de l'image
+            st.markdown(f"""
+<div style="
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #D92332;
+    padding: 1.1rem 1.4rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+">
+    <div style="
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle at top right, 
+            rgba(217, 35, 50, 0.03) 0%, 
+            rgba(217, 35, 50, 0.01) 30%,
+            transparent 70%);
+        pointer-events: none;
+    "></div>
+    <div style="
+        display: flex;
+        align-items: flex-start;
+        gap: 0.8rem;
+        margin-bottom: 0.7rem;
+    ">
+        <div style="
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(217, 35, 50, 0.08);
+            border-radius: 7px;
+            margin-top: 2px;
+        ">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#D92332" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 21L16.65 16.65" stroke="#D92332" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M11 8V14" stroke="#D92332" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 11H14" stroke="#D92332" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div style="flex: 1;">
+            <div style="
+                color: #1e293b;
+                font-weight: 600;
+                font-size: 1rem;
+                letter-spacing: -0.01em;
+                margin-bottom: 0.6rem;
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+            ">
+                <span>Focus Ingrédient Principal</span>
+                <div style="
+                    width: 3px;
+                    height: 3px;
+                    border-radius: 50%;
+                    background-color: #D92332;
+                    opacity: 0.7;
+                    margin-top: 1px;
+                "></div>
+            </div>
+            <div style="
+                color: #475569;
+                font-size: 0.9rem;
+                line-height: 1.5;
+                position: relative;
+                padding-left: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            ">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span style="
+                        font-weight: 600;
+                        color: #D92332;
+                    ">{top_ing['ingredient']}</span>
+                    <div style="
+                        height: 4px;
+                        width: 4px;
+                        background: #cbd5e1;
+                        border-radius: 50%;
+                    "></div>
+                    <span>
+                        représente <strong>{part:.1f}%</strong> du coût matière
+                    </span>
+                </div>
+                <div style="
+                    background: #f8fafc;
+                    border-radius: 6px;
+                    padding: 0.5rem 0.7rem;
+                    font-size: 0.85rem;
+                    color: #64748b;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                ">
+                    <span>Coût de cet ingrédient:</span>
+                    <span style="
+                        font-weight: 600;
+                        color: #334155;
+                        font-variant-numeric: tabular-nums;
+                    ">{top_ing['Coût (€)']:.2f} €</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
     # 📊 STATS VENTES RÉELLES (depuis SQLite avec mapping)
     try:
         from kezia_db_manager import get_db_manager
